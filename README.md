@@ -5,7 +5,26 @@ A browser trainer for teaching paraglider pilots to **find a thermal by ear and 
 It emulates a modern flight-deck vario — the phone on your riser — with the real
 audio behaviour, an XCTrack-style thermal assistant, and an instructor's map
 beside it showing where the lift actually is. No install, no dependencies, no
-build step: one self-contained `index.html`.
+build step: plain static files.
+
+## The two tools
+
+`index.html` is a menu onto them.
+
+**Beeper** (`beeper.html`) — a slider from −5 to +5 m/s and nothing else. Drag it
+and hear what each climb and sink rate sounds like, one at a time. Start here: it
+takes thirty seconds and it decouples *learning the sound* from *flying the wing*.
+
+**Thermal Coach** (`coach.html`) — the full simulator. Fly a paraglider into a
+thermal and core it by ear, with seven exercises and a coach that grades every
+360 you fly.
+
+Both pages share `vario-audio.js`, so the beeper and the simulator are the same
+instrument — there is one place to change how a vario sounds, not two.
+
+On the beeper the sink alarm is set to −1.0 m/s so that every marked step on the
+sink side makes a noise; the lift threshold is +0.1, so zero is silent. On a real
+instrument both are settings, and the coach page lets you move them.
 
 ---
 
@@ -117,8 +136,14 @@ a lap, or a phone passed round the group.
 
 ## Running it
 
-Open `index.html`. That is the whole procedure — it is a single file with no
-dependencies and no build step.
+Open `index.html`. That is the whole procedure — static files, no dependencies
+and no build step.
+
+One caveat if you are running it from disk rather than a web server: `coach.html`
+loads `vario-audio.js`, and a few browsers refuse `file://` script loads under
+their local-file rules. If the coach page loads silently, serve the folder
+instead — `python3 -m http.server` — or just use the deployed link. The beeper
+has the same dependency.
 
 Headphones or a decent speaker matter more than the screen. The sound *is* the
 lesson; muted, this is just a diagram.
@@ -126,9 +151,14 @@ lesson; muted, this is just a diagram.
 ## Deploying
 
 Pushed to `main`, GitHub Actions publishes it to GitHub Pages
-(`.github/workflows/deploy.yml`). The workflow copies `index.html` onto a
+(`.github/workflows/deploy.yml`). The workflow copies the repo root onto a
 `gh-pages` branch, which needs only `contents: write` — no admin has to enable
-Pages by hand first.
+Pages by hand first. Adding a new page is just adding the file; the workflow
+needs no edit.
+
+Pages does have to be switched on once, under **Settings → Pages → Deploy from a
+branch → `gh-pages` / root**. The workflow token is not allowed to do that for
+you.
 
 If you would rather use the newer Actions-based Pages source (`actions/deploy-pages`),
 switch **Settings → Pages → Source** to *GitHub Actions* and swap the publish

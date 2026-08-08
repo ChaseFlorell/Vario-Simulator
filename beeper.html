@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05090C">
+<title>Vario Beeper — what each climb rate sounds like</title>
+<style>
+/* Same world as the rest of the trainer: a phone against a bright sky.
+   This page is the instrument on its own, with nothing else to look at. */
+:root{
+  --sky:#DCE8F0;
+  --sky-2:#C7DAE6;
+  --ink:#132029;
+  --ink-2:#42586A;
+  --muted:#7B90A1;
+  --line:#C6D6E1;
+  --accent:#0E6B7A;
+
+  --device:#0F171C;
+  --device-edge:#2C3941;
+  --screen:#05090C;
+  --screen-ink:#EAF4F8;
+  --screen-dim:#5E7480;
+  --screen-line:#152229;
+
+  --lift:#2FE08A;
+  --sink:#FF6A4D;
+
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  background:linear-gradient(170deg, var(--sky) 0%, var(--sky-2) 100%);
+  color:var(--ink);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  display:flex; align-items:center; justify-content:center;
+  padding:14px;
+  overflow:hidden;
+  touch-action:manipulation;
+}
+.label{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; }
+
+/* ── The device ─────────────────────────────────────────────── */
+.phone{
+  width:100%; max-width:430px; height:100%; max-height:860px;
+  background:var(--device); border:1px solid var(--device-edge);
+  border-radius:28px; padding:10px;
+  box-shadow:0 16px 40px rgba(19,32,41,.3), 0 2px 6px rgba(19,32,41,.18);
+  display:flex;
+}
+.screen{
+  flex:1 1 auto; min-height:0; background:var(--screen);
+  border-radius:20px; overflow:hidden; color:var(--screen-ink);
+  display:flex; flex-direction:column;
+}
+
+/* status strip */
+.sbar{
+  flex:0 0 auto; display:flex; align-items:center; gap:10px;
+  padding:11px 16px 9px; border-bottom:1px solid var(--screen-line);
+  font-family:var(--mono); font-size:10px; color:var(--screen-dim);
+}
+.sbar .grow{ flex:1 1 auto; }
+.sbar a{ color:var(--screen-dim); text-decoration:none; border-bottom:1px solid #22323B; }
+.sbar a:hover{ color:var(--screen-ink); }
+.sbar a:focus-visible{ outline:2px solid var(--lift); outline-offset:3px; }
+
+/* ── The number ─────────────────────────────────────────────── */
+.readout{
+  flex:1 1 auto; min-height:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; padding:10px 16px;
+}
+.value{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:clamp(76px, 24vw, 132px); line-height:.9; font-weight:700;
+  letter-spacing:-.045em; color:var(--screen-ink);
+  transition:color .1s linear;
+}
+.unit{ font-family:var(--sans); font-size:12px; letter-spacing:.22em;
+  font-weight:700; color:var(--screen-dim); }
+.state{
+  font-size:12.5px; font-weight:600; color:var(--screen-dim);
+  min-height:1.3em; text-align:center;
+}
+.detail{
+  font-family:var(--mono); font-size:11px; color:#3E525D;
+  min-height:1.3em; text-align:center; font-variant-numeric:tabular-nums;
+}
+
+/* ── LED ladder, aligned with the slider below it ───────────── */
+.ladder{ flex:0 0 auto; padding:0 20px; display:flex; gap:2px; height:16px; }
+.ladder i{ flex:1 1 0; border-radius:2px; background:#101B21; display:block; }
+
+/* ── The control ────────────────────────────────────────────── */
+.control{ flex:0 0 auto; padding:16px 20px 22px; display:flex; flex-direction:column; gap:9px; }
+.ticks{
+  display:flex; justify-content:space-between;
+  font-family:var(--mono); font-size:10px; color:#3E525D;
+}
+input[type=range]{
+  width:100%; margin:0; background:transparent; cursor:pointer;
+  -webkit-appearance:none; appearance:none; height:44px;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:6px; border-radius:3px;
+  background:linear-gradient(90deg, #4A1F16 0%, #1B252B 45%, #1B252B 55%, #133426 100%);
+}
+input[type=range]::-moz-range-track{
+  height:6px; border-radius:3px;
+  background:linear-gradient(90deg, #4A1F16 0%, #1B252B 45%, #1B252B 55%, #133426 100%);
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:34px; height:34px; border-radius:50%;
+  background:#EAF4F8; border:3px solid #0F171C;
+  box-shadow:0 2px 6px rgba(0,0,0,.5); margin-top:-14px;
+}
+input[type=range]::-moz-range-thumb{
+  width:34px; height:34px; border-radius:50%;
+  background:#EAF4F8; border:3px solid #0F171C;
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
+}
+input[type=range]:focus-visible{ outline:2px solid var(--lift); outline-offset:4px; border-radius:8px; }
+
+.zero{
+  align-self:center; font-family:var(--sans); font-size:11px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase;
+  background:#18242B; border:1px solid #2C3941; color:#A8BCC6;
+  padding:7px 16px; border-radius:20px; cursor:pointer;
+}
+.zero:hover{ background:#20303A; color:#DDEAF0; }
+.zero:focus-visible{ outline:2px solid var(--lift); outline-offset:3px; }
+
+/* ── Start gate ─────────────────────────────────────────────── */
+.overlay{
+  position:fixed; inset:0; z-index:20; display:flex;
+  align-items:center; justify-content:center; padding:24px;
+  background:rgba(19,32,41,.62); backdrop-filter:blur(3px);
+}
+.overlay[hidden]{ display:none; }
+.card{
+  width:min(420px,100%); background:#fff; border:1px solid var(--line);
+  border-top:3px solid var(--accent); border-radius:12px; padding:24px;
+  display:flex; flex-direction:column; gap:14px;
+  box-shadow:0 20px 50px rgba(19,32,41,.3);
+}
+.card h1{ margin:0; font-size:19px; font-weight:800; letter-spacing:-.015em; }
+.card p{ margin:0; font-size:13.5px; color:var(--ink-2); line-height:1.6; }
+.card strong{ color:var(--ink); font-weight:650; }
+.card button{
+  align-self:flex-start; font-family:var(--sans); font-size:14px; font-weight:650;
+  background:var(--accent); color:#fff; border:none;
+  padding:11px 26px; border-radius:8px; cursor:pointer;
+}
+.card button:hover{ background:#0B8FA3; }
+.card button:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+
+@media (max-height:620px){
+  .value{ font-size:clamp(54px, 16vh, 90px); }
+  .ladder{ height:12px; }
+  .control{ padding:12px 20px 16px; }
+}
+@media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="screen">
+
+    <div class="sbar">
+      <span>VARIO BEEPER</span>
+      <span class="grow"></span>
+      <a href="index.html">← Menu</a>
+    </div>
+
+    <div class="readout">
+      <div class="value" id="value">0.0</div>
+      <div class="unit">M/S</div>
+      <p class="state" id="state">Silent — inside the deadband</p>
+      <p class="detail" id="detail">&nbsp;</p>
+    </div>
+
+    <div class="ladder" id="ladder" aria-hidden="true"></div>
+
+    <div class="control">
+      <div class="ticks"><span>−5</span><span>0</span><span>+5</span></div>
+      <input type="range" id="slider" min="-5" max="5" step="0.1" value="0"
+             aria-label="Climb rate in metres per second">
+      <button class="zero" id="btnZero" type="button">Back to zero</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="overlay" id="gate">
+  <div class="card">
+    <h1>Vario Beeper</h1>
+    <p><strong>Turn your volume up.</strong> Drag the slider and hear exactly what a paragliding vario does at every climb rate — faster, higher beeps going up; a low growl going down.</p>
+    <p>It starts at zero, which is silent. That band of quiet either side of zero is the deadband, and it is why a vario says nothing when you are just gliding.</p>
+    <button id="btnStart" type="button">Turn on the sound</button>
+  </div>
+</div>
+
+<script src="vario-audio.js"></script>
+<script>
+"use strict";
+
+/* Lift threshold sits just above zero so the slider is silent at 0 and
+   speaks from +0.1 up. The sink alarm is set to −1.0 so that every
+   marked step on the sink side — −1 through −5 — growls; on a real
+   instrument this is a setting, usually somewhere around −2. */
+const LIFT_THR = 0.1;
+const SINK_THR = -1.0;
+
+const vario = new VarioAudio({ liftThr: LIFT_THR, sinkThr: SINK_THR, volume: 0.55 });
+
+const el = id => document.getElementById(id);
+const slider = el('slider'), valueEl = el('value'), stateEl = el('state'),
+      detailEl = el('detail'), ladder = el('ladder'), gate = el('gate');
+
+/* LED ladder: 21 segments, one per half metre per second, lighting
+   outward from the centre. */
+const SEGS = 21, MID = (SEGS - 1) / 2;
+for (let i = 0; i < SEGS; i++) ladder.appendChild(document.createElement('i'));
+
+function paintLadder(v){
+  const n = Math.round(v / 5 * MID);            // −10 … +10
+  const seg = ladder.children;
+  for (let i = 0; i < SEGS; i++){
+    const rank = i - MID;                       // −10 at the left, +10 at the right
+    let lit = false;
+    if (n > 0) lit = rank > 0 && rank <= n;
+    else if (n < 0) lit = rank < 0 && rank >= n;
+    seg[i].style.background = rank === 0 ? '#2E3E47'
+      : lit ? (rank > 0 ? 'var(--lift)' : 'var(--sink)') : '#101B21';
+  }
+}
+
+function render(v){
+  valueEl.textContent = (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1);
+
+  if (v >= LIFT_THR){
+    valueEl.style.color = 'var(--lift)';
+    stateEl.textContent = 'Climbing — the vario is beeping';
+    stateEl.style.color = 'var(--lift)';
+    detailEl.textContent =
+      VarioAudio.beepRate(v).toFixed(1) + ' beeps/s · ' +
+      Math.round(VarioAudio.beepFreq(v)) + ' Hz';
+  } else if (v <= SINK_THR){
+    valueEl.style.color = 'var(--sink)';
+    stateEl.textContent = 'Sinking — sink alarm';
+    stateEl.style.color = 'var(--sink)';
+    detailEl.textContent = 'continuous tone · ' +
+      Math.round(Math.max(85, Math.min(380, 300 * Math.pow(2, (v - SINK_THR) / 7)))) + ' Hz';
+  } else {
+    valueEl.style.color = 'var(--screen-ink)';
+    stateEl.textContent = 'Silent — inside the deadband';
+    stateEl.style.color = 'var(--screen-dim)';
+    detailEl.innerHTML = '&nbsp;';
+  }
+
+  paintLadder(v);
+  vario.setValue(v);
+}
+
+slider.addEventListener('input', () => render(+slider.value));
+
+el('btnZero').addEventListener('click', () => {
+  slider.value = 0;
+  render(0);
+  slider.focus();
+});
+
+el('btnStart').addEventListener('click', () => {
+  vario.start();
+  gate.hidden = true;
+  slider.focus();
+});
+
+// Silence the tone if the page is backgrounded — nobody wants a vario
+// beeping from a tab they have switched away from.
+document.addEventListener('visibilitychange', () => {
+  vario.setEnabled(!document.hidden);
+});
+
+render(0);
+</script>
+</body>
+</html>

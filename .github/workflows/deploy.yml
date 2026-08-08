@@ -30,11 +30,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The simulator is a single self-contained index.html, so the
-          # published site is just that file.
+          # Everything in the repo root is the site, so a new page is
+          # published just by adding the file — no edit here needed.
           site="$(mktemp -d)"
-          cp index.html "$site/"
-          touch "$site/.nojekyll"          # serve the file as-is, no Jekyll
+          rsync -a --exclude='.git' --exclude='.github' --exclude='README.md' ./ "$site/"
+          touch "$site/.nojekyll"          # serve the files as-is, no Jekyll
 
           cd "$site"
           git init -q -b gh-pages

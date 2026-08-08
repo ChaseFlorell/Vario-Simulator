@@ -1,0 +1,1665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vario Simulator — Thermal Coring Trainer</title>
+<style>
+/* ─────────────────────────────────────────────────────────────
+   VARIO SIMULATOR
+   Identity: a phone against a bright sky. The page is hazy
+   daylight; the instrument is a dark glowing slab you squint at.
+   Single committed daylight world — every colour painted.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --sky:#DCE8F0;
+  --sky-2:#C7DAE6;
+  --card:#FFFFFF;
+  --card-2:#F2F7FA;
+  --ink:#132029;
+  --ink-2:#42586A;
+  --muted:#7B90A1;
+  --line:#C6D6E1;
+  --line-2:#E3EDF3;
+  --accent:#0E6B7A;
+  --accent-2:#0B8FA3;
+  --accent-wash:#DCEEF1;
+
+  --lift:#12A05A;
+  --sink:#D2452B;
+  --warn:#C97A16;
+  --thermal:#E8912B;
+
+  --device:#0F171C;
+  --device-edge:#2C3941;
+  --screen:#05090C;
+  --screen-ink:#EAF4F8;
+  --screen-dim:#5E7480;
+
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  background:linear-gradient(170deg, var(--sky) 0%, var(--sky-2) 100%);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+
+.label{
+  font-size:10px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--muted); font-weight:700;
+}
+.num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+/* ── Shell ──────────────────────────────────────────────────── */
+.app{
+  height:100dvh;
+  display:grid;
+  grid-template-columns:326px minmax(0,1fr) 306px;
+  grid-template-rows:auto minmax(0,1fr);
+  grid-template-areas:"head head head" "dev air side";
+  gap:14px; padding:14px;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.head{
+  grid-area:head; display:flex; align-items:center; gap:16px;
+  background:var(--card); border:1px solid var(--line);
+  border-radius:10px; padding:10px 16px;
+  box-shadow:0 1px 2px rgba(19,32,41,.05);
+}
+.brand{ display:flex; align-items:baseline; gap:10px; min-width:0; }
+.brand .home{
+  font-size:16px; line-height:1; color:var(--muted); text-decoration:none;
+  padding:2px 6px; border-radius:5px; align-self:center;
+}
+.brand .home:hover{ color:var(--accent); background:var(--accent-wash); }
+.brand .home:focus-visible{ outline:2px solid var(--accent-2); outline-offset:2px; }
+.brand h1{
+  margin:0; font-size:15px; font-weight:800; letter-spacing:-.01em;
+  white-space:nowrap; color:var(--ink);
+}
+.brand .tag{
+  font-size:10px; letter-spacing:.13em; text-transform:uppercase; font-weight:700;
+  color:var(--accent); background:var(--accent-wash);
+  padding:3px 7px; border-radius:20px; white-space:nowrap;
+}
+.head .grow{ flex:1 1 auto; }
+.head-exercise{ display:flex; align-items:center; gap:8px; min-width:0; }
+
+button{
+  font-family:var(--sans); font-size:12.5px; font-weight:600; color:var(--ink);
+  background:var(--card); border:1px solid var(--line);
+  padding:8px 12px; border-radius:7px; cursor:pointer;
+  transition:background .12s, border-color .12s, color .12s;
+}
+button:hover{ background:var(--card-2); border-color:var(--accent-2); }
+button.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+button.primary:hover{ background:var(--accent-2); border-color:var(--accent-2); }
+button.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+button:focus-visible, select:focus-visible, input:focus-visible{
+  outline:2px solid var(--accent-2); outline-offset:2px;
+}
+select{
+  font-family:var(--sans); font-size:12.5px; font-weight:600; color:var(--ink);
+  background:var(--card); border:1px solid var(--line);
+  padding:8px 10px; border-radius:7px; cursor:pointer; max-width:100%;
+}
+input[type=range]{ width:100%; height:18px; margin:0; background:transparent; cursor:pointer;
+  -webkit-appearance:none; appearance:none; }
+input[type=range]::-webkit-slider-runnable-track{ height:3px; background:var(--line); border-radius:2px; }
+input[type=range]::-moz-range-track{ height:3px; background:var(--line); border-radius:2px; }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none;
+  width:14px; height:14px; border-radius:50%; background:var(--accent); margin-top:-5.5px; border:none; }
+input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
+  background:var(--accent); border:none; }
+
+/* ── The device column ──────────────────────────────────────── */
+.dev{
+  grid-area:dev; display:flex; flex-direction:column; gap:10px;
+  min-height:0; align-items:center;
+}
+.phone{
+  width:100%; max-width:312px; flex:1 1 auto; min-height:0;
+  background:var(--device); border:1px solid var(--device-edge);
+  border-radius:26px; padding:9px;
+  box-shadow:0 14px 34px rgba(19,32,41,.28), 0 2px 6px rgba(19,32,41,.16);
+  display:flex; flex-direction:column;
+}
+.screen{
+  flex:1 1 auto; min-height:0; background:var(--screen);
+  border-radius:18px; overflow:hidden;
+  display:flex; flex-direction:column; color:var(--screen-ink);
+}
+/* status strip */
+.sbar{
+  display:flex; align-items:center; gap:8px; padding:7px 12px 5px;
+  font-family:var(--mono); font-size:10px; color:var(--screen-dim);
+  border-bottom:1px solid #131E25; flex:0 0 auto;
+}
+.sbar .grow{ flex:1 1 auto; }
+.sbar .gps{ color:var(--lift); }
+.batt{ width:18px; height:9px; border:1px solid var(--screen-dim); border-radius:2px;
+  position:relative; display:inline-block; }
+.batt::after{ content:''; position:absolute; left:1px; top:1px; bottom:1px; width:68%;
+  background:var(--screen-dim); border-radius:1px; }
+
+/* main climb readout */
+.climb-row{ display:flex; align-items:stretch; gap:10px; padding:10px 12px 6px; flex:0 0 auto; }
+.vbar{ width:26px; flex:0 0 auto; display:flex; flex-direction:column; gap:2px; }
+.vbar i{ flex:1 1 0; border-radius:2px; background:#111C22; display:block; }
+.climb-main{ flex:1 1 auto; display:flex; flex-direction:column; justify-content:center; min-width:0; }
+.climb-val{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:54px; line-height:.92; font-weight:700; letter-spacing:-.03em;
+  color:var(--screen-ink);
+}
+.climb-unit{ font-size:10px; letter-spacing:.16em; color:var(--screen-dim); font-weight:700; margin-top:4px; }
+
+/* four-up data grid */
+.dgrid{
+  display:grid; grid-template-columns:1fr 1fr; gap:1px;
+  background:#131E25; border-top:1px solid #131E25; border-bottom:1px solid #131E25;
+  flex:0 0 auto;
+}
+.dcell{ background:var(--screen); padding:6px 12px; display:flex; flex-direction:column; gap:1px; }
+.dcell .k{ font-size:9px; letter-spacing:.13em; color:var(--screen-dim); font-weight:700; }
+.dcell .v{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:19px; font-weight:600; }
+.dcell .v small{ font-size:9px; color:var(--screen-dim); margin-left:2px; letter-spacing:.06em; }
+
+/* thermal assistant */
+.assist{ flex:1 1 auto; min-height:0; position:relative; display:flex; flex-direction:column; }
+.assist-head{
+  display:flex; align-items:center; gap:6px; padding:7px 12px 3px; flex:0 0 auto;
+  font-size:9px; letter-spacing:.13em; color:var(--screen-dim); font-weight:700;
+}
+.assist-head .dot{ width:5px; height:5px; border-radius:50%; background:var(--thermal); }
+.assist-head .grow{ flex:1 1 auto; }
+.assist-canvas-wrap{ flex:1 1 auto; min-height:0; position:relative; }
+#assist{ display:block; width:100%; height:100%; }
+.assist-off{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:6px; text-align:center; padding:0 22px;
+}
+.assist-off p{ margin:0; font-size:11px; color:var(--screen-dim); line-height:1.5; }
+.assist-off .big{ font-size:10px; letter-spacing:.16em; font-weight:700; color:#3C4E58; }
+
+/* phone hardware buttons row (under the screen) */
+.phone-keys{
+  flex:0 0 auto; display:flex; gap:6px; padding:9px 2px 2px;
+}
+.phone-keys button{
+  flex:1 1 0; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  background:#18242B; border-color:#2C3941; color:#A8BCC6; padding:8px 4px; font-weight:700;
+}
+.phone-keys button:hover{ background:#20303A; border-color:#3D525E; color:#DDEAF0; }
+.phone-keys button.on{ background:var(--accent-2); border-color:var(--accent-2); color:#04181C; }
+
+.dev-caption{ flex:0 0 auto; text-align:center; max-width:312px; }
+.dev-caption p{ margin:0; font-size:11px; color:var(--ink-2); line-height:1.5; }
+
+/* ── The air (map + trace) ──────────────────────────────────── */
+.air{ grid-area:air; display:flex; flex-direction:column; gap:14px; min-width:0; min-height:0; }
+.map-card{
+  flex:1 1 auto; min-height:0; position:relative; background:var(--card);
+  border:1px solid var(--line); border-radius:10px; overflow:hidden;
+  box-shadow:0 1px 2px rgba(19,32,41,.05);
+}
+#map{ display:block; width:100%; height:100%; }
+.map-badge{ position:absolute; top:12px; left:12px; display:flex; gap:6px; flex-wrap:wrap;
+  pointer-events:none; max-width:calc(100% - 24px); }
+.chip{
+  font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
+  background:rgba(255,255,255,.9); border:1px solid var(--line); color:var(--ink-2);
+  padding:4px 8px; border-radius:20px;
+}
+.chip.hot{ color:#8A5312; border-color:#E8C79A; background:#FDF2E3; }
+.chip.est{ color:var(--accent); border-color:#A9D3DA; background:var(--accent-wash); }
+
+.coach{
+  position:absolute; left:12px; right:12px; bottom:12px;
+  background:rgba(255,255,255,.96); border:1px solid var(--line);
+  border-left:3px solid var(--accent); border-radius:8px;
+  padding:10px 13px; display:none; flex-direction:column; gap:3px;
+  box-shadow:0 4px 14px rgba(19,32,41,.12);
+}
+.coach.show{ display:flex; }
+.coach .hdr{ display:flex; align-items:center; gap:8px; }
+.coach .hdr .grow{ flex:1 1 auto; }
+.coach p{ margin:0; font-size:13px; color:var(--ink); }
+.coach .metric{ font-family:var(--mono); color:var(--accent); font-weight:600; }
+
+.touch{ position:absolute; inset:auto 0 0 0; display:none;
+  justify-content:space-between; padding:14px; gap:10px; pointer-events:none; }
+.touch button{ pointer-events:auto; width:76px; height:58px; font-size:19px;
+  background:rgba(255,255,255,.92); }
+.touch .mid{ display:flex; gap:8px; pointer-events:auto; }
+.touch .mid button{ width:56px; height:58px; font-size:11px; }
+
+.trace-card{
+  flex:0 0 118px; position:relative; background:var(--card);
+  border:1px solid var(--line); border-radius:10px; overflow:hidden;
+  box-shadow:0 1px 2px rgba(19,32,41,.05);
+}
+#trace{ display:block; width:100%; height:100%; }
+.trace-tag{ position:absolute; top:8px; left:12px; pointer-events:none; }
+
+/* ── Side rail ──────────────────────────────────────────────── */
+.side{
+  grid-area:side; background:var(--card); border:1px solid var(--line);
+  border-radius:10px; overflow-y:auto; overscroll-behavior:contain;
+  box-shadow:0 1px 2px rgba(19,32,41,.05);
+}
+.sec{ border-bottom:1px solid var(--line-2); padding:13px 15px; display:flex; flex-direction:column; gap:11px; }
+.sec:last-child{ border-bottom:none; }
+.brief{ margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.55; }
+.brief strong{ color:var(--ink); font-weight:650; }
+.field{ display:flex; flex-direction:column; gap:5px; }
+.field .row{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.field .row .val{ font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums; font-weight:600; }
+.hint{ font-size:11px; color:var(--muted); margin:0; line-height:1.5; }
+.btn-row{ display:flex; gap:6px; flex-wrap:wrap; }
+.btn-row button{ flex:1 1 auto; }
+
+.log{ display:flex; flex-direction:column; gap:4px; }
+.log-row{ display:grid; grid-template-columns:24px 1fr auto; gap:8px; align-items:center; font-size:12px; }
+.log-row .n{ font-family:var(--mono); font-size:10px; color:var(--muted); }
+.log-row .bar{ height:6px; border-radius:3px; background:var(--line-2); position:relative; overflow:hidden; }
+.log-row .bar i{ position:absolute; inset:0 auto 0 0; display:block; border-radius:3px; }
+.log-row .r{ font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums; font-weight:600; }
+.empty{ font-size:12px; color:var(--muted); font-style:italic; margin:0; }
+
+.stats{ display:grid; grid-template-columns:1fr 1fr; gap:11px 8px; }
+.stat{ display:flex; flex-direction:column; gap:1px; }
+.stat .v{ font-family:var(--mono); font-size:16px; font-variant-numeric:tabular-nums; font-weight:600; }
+
+.keys{ display:flex; flex-wrap:wrap; gap:5px 10px; font-size:11px; color:var(--muted); }
+.keys kbd{
+  font-family:var(--mono); font-size:10px; background:var(--card-2);
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:4px;
+  padding:1px 5px; color:var(--ink-2); margin-right:3px;
+}
+
+/* ── Overlays ───────────────────────────────────────────────── */
+.overlay{
+  position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
+  background:rgba(19,32,41,.55); backdrop-filter:blur(3px); padding:24px;
+}
+.overlay[hidden]{ display:none; }
+.card-modal{
+  width:min(560px,100%); background:var(--card); border:1px solid var(--line);
+  border-top:3px solid var(--accent); border-radius:12px; padding:26px;
+  display:flex; flex-direction:column; gap:16px; max-height:88dvh; overflow-y:auto;
+  box-shadow:0 20px 50px rgba(19,32,41,.3);
+}
+.card-modal h2{ margin:0; font-size:20px; font-weight:800; letter-spacing:-.015em; }
+.card-modal p{ margin:0; font-size:13.5px; color:var(--ink-2); line-height:1.6; }
+.card-modal p strong{ color:var(--ink); font-weight:650; }
+.keylist{ display:grid; grid-template-columns:auto 1fr; gap:7px 14px; font-size:12.5px; align-items:baseline; }
+.keylist .k{ font-family:var(--mono); color:var(--accent); font-size:11px; font-weight:600; }
+.keylist .d{ color:var(--ink-2); }
+.debrief-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(108px,1fr)); gap:14px; }
+.rule{ height:1px; background:var(--line-2); }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width:1180px){
+  body{ overflow:auto; }
+  .app{
+    height:auto; min-height:100dvh;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto auto auto;
+    grid-template-areas:"head" "dev" "air" "side";
+  }
+  .dev{ align-items:center; }
+  .phone{ height:560px; flex:0 0 auto; }
+  .air{ height:auto; }
+  .map-card{ height:56dvh; min-height:340px; flex:0 0 auto; }
+  .touch{ display:flex; }
+}
+@media (max-width:620px){
+  .app{ padding:9px; gap:10px; }
+  .head{ flex-wrap:wrap; gap:10px; }
+  .phone{ max-width:100%; height:540px; }
+  .map-card{ height:46dvh; min-height:280px; }
+  .trace-card{ flex:0 0 100px; }
+}
+@media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="head">
+    <div class="brand">
+      <a href="index.html" class="home" title="Back to the menu">←</a>
+      <h1>Vario Simulator</h1>
+      <span class="tag">Thermal coring</span>
+    </div>
+    <div class="head-exercise">
+      <span class="label">Exercise</span>
+      <select id="selScenario" aria-label="Exercise"></select>
+    </div>
+    <div class="grow"></div>
+    <div class="btn-row">
+      <button id="btnPause" title="Pause / resume (Space)">Pause</button>
+      <button id="btnReveal" title="Show where the thermals really are (H)">Reveal the air</button>
+      <button id="btnRestart" title="Restart this exercise (R)">Restart</button>
+    </div>
+  </header>
+
+  <!-- ── The instrument ───────────────────────────────────────── -->
+  <section class="dev" aria-label="Variometer">
+    <div class="phone">
+      <div class="screen">
+
+        <div class="sbar">
+          <span class="gps" id="sGps">▮▮▮ GPS 11</span>
+          <span class="grow"></span>
+          <span id="sWing">XC wing</span>
+          <span id="sClock">0:00</span>
+          <span class="batt" aria-hidden="true"></span>
+        </div>
+
+        <div class="climb-row">
+          <div class="vbar" id="vbar" aria-hidden="true"></div>
+          <div class="climb-main">
+            <div class="climb-val" id="pClimb">0.0</div>
+            <div class="climb-unit">M/S VARIO</div>
+          </div>
+        </div>
+
+        <div class="dgrid">
+          <div class="dcell"><span class="k">ALT</span><span class="v" id="pAlt">0<small>M</small></span></div>
+          <div class="dcell"><span class="k">AVG 30S</span><span class="v" id="pAvg">0.0<small>M/S</small></span></div>
+          <div class="dcell"><span class="k">SPEED</span><span class="v" id="pSpd">0<small>KM/H</small></span></div>
+          <div class="dcell"><span class="k">GLIDE</span><span class="v" id="pGlide">0.0</span></div>
+        </div>
+
+        <div class="assist">
+          <div class="assist-head">
+            <span class="dot" id="aDot" hidden></span>
+            <span id="aTitle">Thermal assistant</span>
+            <span class="grow"></span>
+            <span id="aRange">—</span>
+          </div>
+          <div class="assist-canvas-wrap">
+            <canvas id="assist" role="img" aria-label="Thermal assistant"></canvas>
+            <div class="assist-off" id="assistOff">
+              <span class="big">SNIFFER OFF</span>
+              <p>Find the core by ear first. Switch the sniffer on to see how the instrument works it out from your track.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="phone-keys">
+        <button id="btnSniff" title="Thermal sniffer (T)">Sniffer</button>
+        <button id="btnMute" title="Mute the vario (M)">Sound</button>
+      </div>
+    </div>
+    <div class="dev-caption">
+      <p id="devCaption">This is all the student gets in the air: a number, a bar, and the beeps.</p>
+    </div>
+  </section>
+
+  <!-- ── The air ──────────────────────────────────────────────── -->
+  <section class="air" aria-label="Instructor view">
+    <div class="map-card">
+      <canvas id="map" role="img" aria-label="Top-down view of the airmass"></canvas>
+      <div class="map-badge">
+        <span class="chip" id="chipFrame">Air-mass view · north up</span>
+        <span class="chip" id="chipWind">Wind calm</span>
+        <span class="chip hot" id="chipReveal" hidden>Truth shown</span>
+        <span class="chip est" id="chipEst" hidden>Sniffer estimate shown</span>
+      </div>
+      <div class="coach" id="coach" aria-live="polite">
+        <div class="hdr">
+          <span class="label">Circle <span id="coachNum">1</span></span>
+          <span class="grow"></span>
+          <span class="metric" id="coachAvg">+0.0 m/s</span>
+        </div>
+        <p id="coachText">—</p>
+      </div>
+      <div class="touch">
+        <button id="tLeft" aria-label="Bank left">◀</button>
+        <div class="mid">
+          <button id="tSlow" aria-label="Slow down">SLOW</button>
+          <button id="tLevel" aria-label="Wings level">LVL</button>
+          <button id="tFast" aria-label="Speed bar">BAR</button>
+        </div>
+        <button id="tRight" aria-label="Bank right">▶</button>
+      </div>
+    </div>
+    <div class="trace-card">
+      <canvas id="trace" role="img" aria-label="Vario trace and beep pattern, last sixty seconds"></canvas>
+      <div class="trace-tag"><span class="label">Last 60 s · what you should be hearing</span></div>
+    </div>
+  </section>
+
+  <!-- ── Side rail ────────────────────────────────────────────── -->
+  <aside class="side" aria-label="Briefing, coaching and setup">
+
+    <div class="sec">
+      <span class="label">Briefing</span>
+      <p class="brief" id="briefText"></p>
+    </div>
+
+    <div class="sec">
+      <span class="label">Coach</span>
+      <div class="log" id="circleLog"><p class="empty">Fly a full 360 and the coach will tell you where the core was.</p></div>
+    </div>
+
+    <div class="sec">
+      <span class="label">Conditions</span>
+      <div class="field">
+        <span class="label">Wing</span>
+        <select id="selWing" aria-label="Wing"></select>
+      </div>
+      <div class="field">
+        <div class="row"><span class="label">Wind</span><span class="val" id="valWind">0 km/h</span></div>
+        <input type="range" id="rngWind" min="0" max="40" step="1" value="0" aria-label="Wind speed">
+      </div>
+      <div class="field">
+        <div class="row"><span class="label">Air</span><span class="val" id="valTurb">Light</span></div>
+        <input type="range" id="rngTurb" min="0" max="100" step="5" value="20" aria-label="Turbulence">
+      </div>
+    </div>
+
+    <div class="sec">
+      <span class="label">Instrument</span>
+      <div class="field">
+        <div class="row"><span class="label">Response lag</span><span class="val" id="valLag">1.2 s</span></div>
+        <input type="range" id="rngLag" min="1" max="35" step="1" value="12" aria-label="Vario response lag">
+        <p class="hint">Every vario is late. Turn this up and you have to fly further on faith.</p>
+      </div>
+      <div class="field">
+        <div class="row"><span class="label">Lift threshold</span><span class="val" id="valThr">+0.1 m/s</span></div>
+        <input type="range" id="rngThr" min="0" max="60" step="5" value="10" aria-label="Lift threshold">
+      </div>
+      <div class="field">
+        <div class="row"><span class="label">Sink alarm</span><span class="val" id="valSink">−2.5 m/s</span></div>
+        <input type="range" id="rngSink" min="10" max="50" step="5" value="25" aria-label="Sink alarm threshold">
+      </div>
+      <div class="field">
+        <div class="row"><span class="label">Volume</span><span class="val" id="valVol">55%</span></div>
+        <input type="range" id="rngVol" min="0" max="100" step="5" value="55" aria-label="Volume">
+      </div>
+    </div>
+
+    <div class="sec">
+      <span class="label">This flight</span>
+      <div class="stats">
+        <div class="stat"><span class="label">Height gained</span><span class="v" id="stGain">0 m</span></div>
+        <div class="stat"><span class="label">Best 30 s</span><span class="v" id="stBest">0.0 m/s</span></div>
+        <div class="stat"><span class="label">Time in lift</span><span class="v" id="stInLift">0%</span></div>
+        <div class="stat"><span class="label">Circles</span><span class="v" id="stCircles">0</span></div>
+        <div class="stat"><span class="label">Centring</span><span class="v" id="stCentre">—</span></div>
+        <div class="stat"><span class="label">Airtime</span><span class="v" id="stTime">0:00</span></div>
+      </div>
+      <div class="btn-row"><button id="btnDebrief">Debrief this flight</button></div>
+    </div>
+
+    <div class="sec">
+      <span class="label">Controls</span>
+      <div class="keys">
+        <span><kbd>←</kbd><kbd>→</kbd>bank</span>
+        <span><kbd>X</kbd>level</span>
+        <span><kbd>↑</kbd><kbd>↓</kbd>speed</span>
+        <span><kbd>T</kbd>sniffer</span>
+        <span><kbd>H</kbd>reveal</span>
+        <span><kbd>M</kbd>mute</span>
+        <span><kbd>Space</kbd>pause</span>
+        <span><kbd>R</kbd>restart</span>
+        <span><kbd>+</kbd><kbd>−</kbd>zoom</span>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<!-- ── Start gate (also the audio unlock) ─────────────────────── -->
+<div class="overlay" id="startOverlay">
+  <div class="card-modal">
+    <h2>Catching a thermal, by ear</h2>
+    <p><strong>Put headphones on.</strong> This trainer teaches one skill: hearing lift on a paragliding vario, turning into it, and staying in the strongest part. The sound is the instrument — the map beside it is the instructor's view, and in the air you would not have it.</p>
+    <p>Rising pitch and faster beeps mean you are going up. A low growl means you are sinking out and should leave. Silence is the deadband either side of zero.</p>
+    <div class="rule"></div>
+    <div class="keylist">
+      <span class="k">← →</span><span class="d">Weight-shift left / right. Hold to steepen — the bank stays where you leave it.</span>
+      <span class="k">X</span><span class="d">Wings level.</span>
+      <span class="k">↑ ↓</span><span class="d">Speed bar on / off.</span>
+      <span class="k">T</span><span class="d">Thermal sniffer — show what the instrument infers about the core.</span>
+      <span class="k">H</span><span class="d">Reveal the air — show where the thermals really are.</span>
+    </div>
+    <div class="rule"></div>
+    <p>Start with <strong>Exercise 1</strong>: one steady thermal, straight ahead, no wind, and the air revealed so you can watch the sound and the lift line up.</p>
+    <div class="btn-row"><button class="primary" id="btnBegin" style="flex:0 0 auto; padding:11px 24px;">Launch</button></div>
+  </div>
+</div>
+
+<!-- ── Debrief ────────────────────────────────────────────────── -->
+<div class="overlay" id="debriefOverlay" hidden>
+  <div class="card-modal">
+    <h2 id="dbTitle">Debrief</h2>
+    <p id="dbLead"></p>
+    <div class="debrief-grid" id="dbGrid"></div>
+    <div class="rule"></div>
+    <p id="dbNotes"></p>
+    <div class="btn-row">
+      <button class="primary" id="btnDbAgain">Fly it again</button>
+      <button id="btnDbClose">Look at the track</button>
+    </div>
+  </div>
+</div>
+
+<script src="vario-audio.js"></script>
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════
+   VARIO SIMULATOR — a paragliding thermal-coring trainer.
+
+   Physics runs in the AIR-MASS frame: glider and thermals both
+   drift with the wind, which is why you can circle in a thermal at
+   all. The wind you set moves the ground beneath you — which is
+   the whole point of the drift exercise.
+   ═══════════════════════════════════════════════════════════════ */
+
+const G = 9.80665;
+const TAU = Math.PI*2;
+const FONT_MONO = 'ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace';
+const FONT_SANS = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+const lerp  = (a,b,t)=> a+(b-a)*t;
+
+/* ── Wings ─────────────────────────────────────────────────────
+   Polar: sink(V) = wMs + k·(V − vMs)² about the min-sink point.
+   Glide at trim comes out ≈ 8.1 / 9.6 / 11.4 — about right. */
+const WINGS = {
+  school: { name:'School wing (EN-A)', vMin:8.0, vTrim: 9.8, vMax:12.5, vMs: 8.8, wMs:1.15, k:0.055, maxBank:45, roll:34, span:11 },
+  xc:     { name:'XC wing (EN-B)',     vMin:8.5, vTrim:10.8, vMax:15.0, vMs: 9.5, wMs:1.05, k:0.045, maxBank:52, roll:38, span:11 },
+  perf:   { name:'Performance (EN-D)', vMin:9.0, vTrim:11.8, vMax:17.5, vMs:10.3, wMs:0.95, k:0.036, maxBank:58, roll:42, span:12 }
+};
+
+/* ── Exercises, in the order you would teach them ──────────── */
+const SCENARIOS = {
+  contact: {
+    name:'1 · First contact',
+    brief:'One fat, steady thermal about 200 m ahead. No wind. The air is <strong>revealed</strong> so you can watch the beeps and the lift line up. Fly straight until it sings, then turn — either way — and hold about 30° of bank.',
+    wing:'xc', wind:0, turb:0.12, reveal:true, sniff:false, start:900, zoom:1.0,
+    // Deliberately fat and strong: a sloppy first circle should still
+    // climb, so the student hears the reward before precision matters.
+    field:{ n:1, W:4.2, R:95, spread:0, wander:0.15, pulse:0, steady:true, place:[[0,200]] }
+  },
+  centre: {
+    name:'2 · Centring',
+    brief:'A narrower core that wanders, and the air is <strong>hidden</strong>. Circle, listen for which part of the turn sings loudest, and move your circle that way. The coach grades every 360.',
+    wing:'xc', wind:0, turb:0.3, reveal:false, sniff:false, start:900, zoom:1.3,
+    field:{ n:1, W:4.4, R:70, spread:0, wander:0.9, pulse:0.12, steady:true, place:[[10,225]] }
+  },
+  sniffer: {
+    name:'3 · How the vario sniffs',
+    brief:'Same thermal, but the <strong>sniffer is on</strong>. The assistant only knows where you have already been — watch it guess badly on the first half-circle and sharpen once you have flown a full one. It follows you; it never leads.',
+    wing:'xc', wind:0, turb:0.3, reveal:true, sniff:true, start:900, zoom:1.3,
+    field:{ n:1, W:4.4, R:72, spread:0, wander:0.6, pulse:0.1, steady:true, place:[[10,220]] }
+  },
+  drift: {
+    name:'4 · Drift',
+    brief:'22 km/h of wind. In the air you circle normally — but watch the ground slide past underneath. Climbing costs you ground downwind, and the core leans that way as you go up. Never chase it upwind.',
+    wing:'xc', wind:22, turb:0.35, reveal:false, sniff:false, start:800, zoom:1.15,
+    field:{ n:1, W:4.4, R:70, spread:0, wander:0.7, pulse:0.15, steady:true, lean:0.5, place:[[0,220]] }
+  },
+  broken: {
+    name:'5 · Broken air',
+    brief:'A pulsing, rough thermal that switches off for a few seconds at a time. Do not throw away a core because one beat went quiet — hold the circle and let it come back.',
+    wing:'xc', wind:12, turb:0.85, reveal:false, sniff:false, start:850, zoom:1.3,
+    field:{ n:2, W:4.6, R:62, spread:420, wander:1.2, pulse:0.55, period:19, steady:true, place:[[10,210]] }
+  },
+  search: {
+    name:'6 · Search & survive',
+    brief:'Low, sinking, five thermals somewhere out there — and they live and die. Fly straight, feel for the surge, and commit the moment the beeps start. Land and the exercise is over.',
+    wing:'xc', wind:14, turb:0.55, reveal:false, sniff:true, start:480, zoom:0.75,
+    field:{ n:6, W:4.8, R:90, spread:620, wander:0.8, pulse:0.25, period:23, steady:false, life:[260,70], place:[[0,300]] }
+  },
+  blind: {
+    name:'7 · Blind coring',
+    brief:'The instructor map is switched off. Instrument and sound only — which is what it is like with your eyes outside, where they belong. Reveal the track afterwards and see what you actually flew.',
+    wing:'xc', wind:0, turb:0.3, reveal:false, sniff:false, blind:true, start:900, zoom:1.3,
+    field:{ n:1, W:4.4, R:68, spread:0, wander:0.9, pulse:0.1, steady:true, place:[[-10,215]] }
+  }
+};
+
+/* ── State ─────────────────────────────────────────────────── */
+const cfg = {
+  scenario:'contact', wing:'xc',
+  wind:0, turb:0.2,
+  lag:1.2, liftThr:0.1, sinkThr:-2.5,
+  vol:0.55, muted:false,
+  reveal:true, sniff:false, zoom:1.15
+};
+
+const sim = {
+  t:0, running:false, paused:false, landed:false, atBase:false,
+  cloudbase:2400, bgSink:0.22, blind:false, leanRef:900,
+  thermals:[], landmarks:[],
+  glider:null, trail:[], beeps:[], traceHist:[],
+  circles:[], turnAccum:0, circleStart:0,
+  stats:null, coachTimer:0, estimate:null
+};
+
+/* ═══════ Airmass ═══════════════════════════════════════════ */
+
+/* Deterministic PRNG — an exercise must pose the same problem
+   every time a student flies it. */
+function mulberry(a){
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function makeThermal(x, y, f, seed){
+  const r = mulberry(seed);
+  return {
+    x, y,
+    W: f.W * lerp(0.78, 1.22, r()),
+    R: f.R * lerp(0.82, 1.18, r()),
+    wanderA: (f.wander||0) * 26 * lerp(0.6,1.4,r()),
+    wanderF: TAU / lerp(28, 52, r()), wanderP: r()*TAU,
+    wanderF2: TAU / lerp(19, 37, r()), wanderP2: r()*TAU,
+    pulseA: f.pulse||0, pulseT: f.period || 17, pulseP: r()*TAU,
+    t0: f.steady ? -40 : -r()*120,
+    life: f.life ? f.life[0]*lerp(0.8,1.2,r()) : Infinity,
+    fade: f.life ? f.life[1] : 40,
+    lean: f.lean || 0
+  };
+}
+
+function thermalCentre(th, z, t){
+  // Slow meander — a real core is never nailed to one spot.
+  let cx = th.x + th.wanderA * Math.sin(t*th.wanderF + th.wanderP);
+  let cy = th.y + th.wanderA * Math.cos(t*th.wanderF2 + th.wanderP2);
+  // Columns lean downwind with height. Wind is from the north, so the
+  // lean runs toward −y and grows as you climb — which is why a core
+  // you had nailed slides out from under you on the way up.
+  if (th.lean){
+    const w = cfg.wind / 3.6;
+    cy -= th.lean * (w/10) * (z - sim.leanRef);
+  }
+  return { x:cx, y:cy };
+}
+
+/* Narrow and sharp down low, broad and friendly up high. */
+function thermalRadius(th, z){
+  return th.R * lerp(0.55, 1.35, clamp(z / sim.cloudbase, 0, 1));
+}
+
+function thermalStrength(th, z, t){
+  const age = t - th.t0;
+  if (age < 0) return 0;
+  let env = clamp(age / 25, 0, 1);
+  if (th.life !== Infinity && age > th.life){
+    env *= clamp(1 - (age - th.life)/th.fade, 0, 1);
+  }
+  let pulse = 1;
+  if (th.pulseA > 0) pulse = clamp(1 + th.pulseA * Math.sin(TAU*age/th.pulseT + th.pulseP), 0, 2);
+  const capT = clamp((sim.cloudbase - z) / 220, 0, 1);   // dies out under base
+  const lowT = clamp(0.45 + 0.55 * z/180, 0, 1);         // weak in the first metres
+  return th.W * env * pulse * capT * lowT;
+}
+
+/* Vertical speed of the air at a point. This is the whole world. */
+function airVelocity(x, y, z, t){
+  let w = -sim.bgSink;
+  for (const th of sim.thermals){
+    const c = thermalCentre(th, z, t);
+    const R = thermalRadius(th, z);
+    const dx = x - c.x, dy = y - c.y;
+    const r2 = dx*dx + dy*dy;
+    if (r2 > (5*R)*(5*R)) continue;
+    const S = thermalStrength(th, z, t);
+    if (S <= 0) continue;
+    const r = Math.sqrt(r2);
+    const core = S * Math.exp(-(r/R)*(r/R));
+    // Compensating subsidence ring — the sink you punch through on the way in.
+    const q = (r - 1.9*R) / (1.1*R);
+    w += core - 0.35 * S * Math.exp(-q*q);
+  }
+  return w;
+}
+
+function liftGradient(x, y, z, t, d){
+  const a = airVelocity(x+d, y, z, t), b = airVelocity(x-d, y, z, t);
+  const c = airVelocity(x, y+d, z, t), e = airVelocity(x, y-d, z, t);
+  return Math.hypot(a-b, c-e) / (2*d);
+}
+
+/* Best climb on offer at this height — the yardstick the centring
+   score is measured against. */
+function bestAvailable(z, t){
+  let best = 0;
+  for (const th of sim.thermals) best = Math.max(best, thermalStrength(th, z, t) - sim.bgSink);
+  return best;
+}
+
+/* ═══════ Wing ═════════════════════════════════════════════ */
+
+function sinkStraight(c, v){ const d = v - c.vMs; return c.wMs + c.k*d*d; }
+
+function newGlider(){
+  const c = WINGS[cfg.wing];
+  return {
+    x:0, y:0, z:SCENARIOS[cfg.scenario].start,
+    hdg:0, bank:0, bankTarget:0, v:c.vTrim, vTarget:c.vTrim,
+    vario:0, net:0, avg30:0, gust:0, sink:c.wMs
+  };
+}
+
+function turnRadius(g){
+  if (Math.abs(g.bank) < 0.02) return Infinity;
+  return g.v*g.v / (G * Math.abs(Math.tan(g.bank)));
+}
+
+function stepPhysics(dt){
+  const c = WINGS[cfg.wing], g = sim.glider;
+
+  const rr = c.roll * Math.PI/180;
+  g.bank += clamp(g.bankTarget - g.bank, -rr*dt, rr*dt);
+  g.v += clamp(g.vTarget - g.v, -3*dt, 3*dt);
+
+  const phi = g.bank;
+  const omega = G * Math.tan(phi) / g.v;
+  g.hdg = (g.hdg + omega*dt) % TAU;
+  g.x += g.v * Math.sin(g.hdg) * dt;
+  g.y += g.v * Math.cos(g.hdg) * dt;
+
+  const n = 1 / Math.cos(phi);                       // load factor
+  g.sink = sinkStraight(c, g.v) * Math.pow(n, 1.5);
+
+  let lift = airVelocity(g.x, g.y, g.z, sim.t);
+
+  if (cfg.turb > 0){
+    const gr = liftGradient(g.x, g.y, g.z, sim.t, 12);
+    const mag = cfg.turb * (0.25 + 0.55*Math.min(1, gr*10));
+    g.gust += ((Math.random()*2 - 1) * mag - g.gust) * clamp(dt/0.45, 0, 1);
+    lift += g.gust;
+    // The wing being pushed by the gradient — the surge you feel on entry.
+    const px = Math.cos(g.hdg), py = -Math.sin(g.hdg);
+    const dl = airVelocity(g.x + px*c.span/2, g.y + py*c.span/2, g.z, sim.t)
+             - airVelocity(g.x - px*c.span/2, g.y - py*c.span/2, g.z, sim.t);
+    const lim = c.maxBank*Math.PI/180 + 0.2;
+    g.bank = clamp(g.bank - dl * cfg.turb * 0.05 * dt, -lim, lim);
+  }
+
+  g.net = lift - g.sink;
+  g.z += g.net * dt;
+
+  sim.atBase = false;
+  if (g.z >= sim.cloudbase){ g.z = sim.cloudbase; sim.atBase = true; }
+  if (g.z <= 0){ g.z = 0; land(); }
+
+  // Indicated vario: a first-order lag on the truth. This is the lie
+  // every pilot has to learn to fly ahead of.
+  g.vario += (g.net - g.vario) * (1 - Math.exp(-dt / Math.max(0.05, cfg.lag)));
+  g.avg30 += (g.net - g.avg30) * (1 - Math.exp(-dt/30));
+
+  sim.turnAccum += omega * dt;
+  if (Math.abs(sim.turnAccum) >= TAU){ sim.turnAccum = 0; closeCircle(); }
+
+  const s = sim.stats;
+  s.time += dt;
+  if (g.net > 0) s.inLift += dt;
+  if (s.time > 30) s.best30 = Math.max(s.best30, g.avg30);
+  s.peakHere = Math.max(s.peakHere, bestAvailable(g.z, sim.t));
+}
+
+/* ═══════ The sniffer ══════════════════════════════════════
+   What a real thermal assistant does: it has no idea where the
+   thermal is. It only has the fixes you have already flown and
+   the climb rate at each one, and it takes the lift-weighted
+   centroid of the recent ones. It follows; it never leads.      */
+
+const SNIFF_WINDOW = 42;      // seconds of track the instrument keeps
+
+function updateEstimate(){
+  const g = sim.glider;
+  const pts = [];
+  for (let i = sim.trail.length-1; i >= 0; i--){
+    if (sim.t - sim.trail[i].t > SNIFF_WINDOW) break;
+    pts.push(sim.trail[i]);
+  }
+  if (pts.length < 8){ sim.estimate = null; return; }
+
+  let mw = 0;
+  for (const p of pts) mw += p.net;
+  mw /= pts.length;
+
+  let sx = 0, sy = 0, den = 0, spread = 0;
+  for (const p of pts){
+    const w = Math.max(0, p.net - mw);
+    sx += w*p.x; sy += w*p.y; den += w;
+    spread += Math.abs(p.net - mw);
+  }
+  if (den < 1e-6){ sim.estimate = null; return; }
+
+  const rawX = sx/den, rawY = sy/den;
+
+  // How much of a circle the samples actually cover. Flying straight
+  // gives about half — the instrument can tell you which line the lift
+  // is on, but not which side of you it sits. Only a completed turn
+  // resolves that, which is exactly what exercise 3 is there to show.
+  const cover = angularCoverage(pts.map(p => Math.atan2(p.x - rawX, p.y - rawY)));
+  const strength = spread / pts.length;
+  const raw = clamp((cover/TAU) * clamp(strength/0.9, 0, 1), 0, 1);
+
+  // Smooth both position and confidence — a real assistant settles
+  // rather than twitching on every fix.
+  const prev = sim.estimate;
+  const x = prev ? lerp(prev.x, rawX, 0.35) : rawX;
+  const y = prev ? lerp(prev.y, rawY, 0.35) : rawY;
+  const conf = prev ? lerp(prev.conf, raw, 0.25) : raw*0.5;
+
+  sim.estimate = { x, y, conf, n:pts.length,
+                   dist: Math.hypot(x - g.x, y - g.y),
+                   bearing: Math.atan2(x - g.x, y - g.y) };
+}
+
+/* Largest arc actually covered by a set of bearings. */
+function angularCoverage(list){
+  if (list.length < 2) return 0;
+  const a = list.map(v => (v % TAU + TAU) % TAU).sort((p,q) => p-q);
+  let biggestGap = (a[0] + TAU) - a[a.length-1];
+  for (let i = 1; i < a.length; i++) biggestGap = Math.max(biggestGap, a[i] - a[i-1]);
+  return Math.max(0, TAU - biggestGap);
+}
+
+/* ═══════ The coach ════════════════════════════════════════ */
+
+function closeCircle(){
+  const pts = sim.trail.slice(sim.circleStart);
+  sim.circleStart = sim.trail.length;
+  if (pts.length < 8) return;
+
+  let cx=0, cy=0, mw=0;
+  for (const p of pts){ cx += p.x; cy += p.y; mw += p.net; }
+  cx /= pts.length; cy /= pts.length; mw /= pts.length;
+
+  let radius = 0;
+  for (const p of pts) radius += Math.hypot(p.x-cx, p.y-cy);
+  radius /= pts.length;
+
+  // Lift-weighted centroid: which side of the circle was paying.
+  let ox=0, oy=0, den=0;
+  for (const p of pts){
+    const dw = p.net - mw;
+    ox += dw*(p.x-cx); oy += dw*(p.y-cy); den += Math.abs(dw);
+  }
+  let dist = 0, bearing = 0;
+  if (den > 1e-6){
+    ox = 2*ox/den; oy = 2*oy/den;
+    dist = Math.min(Math.hypot(ox, oy), 3*radius);
+    bearing = Math.atan2(ox, oy);
+  }
+
+  const c = { n: sim.circles.length+1, avg: mw, radius, dist, bearing,
+              ox, oy, cx, cy, peak: sim.stats.peakHere, t: sim.t };
+  sim.circles.push(c);
+  sim.stats.circles++;
+  sim.stats.peakHere = 0;                 // the yardstick is per-circle
+
+  const g = sim.glider;
+  const secs = clamp(dist / g.v, 0.5, 6);
+  const c8 = compass8(bearing);
+  const oclock = clockFace(bearing - g.hdg);
+
+  let text;
+  if (mw < -0.2){
+    text = 'That circle averaged sink. There is nothing here — roll level, pick a heading and go looking.';
+  } else if (mw < 0.3 && dist > radius){
+    text = `Barely climbing, and the lift was all on one side. The core is roughly <span class="metric">${Math.round(dist)} m</span> to the <span class="metric">${c8}</span> — your <span class="metric">${oclock} o'clock</span>. Straighten about <span class="metric">${secs.toFixed(1)} s</span> heading that way, then wind it straight back in.`;
+  } else if (dist < 0.28*radius){
+    text = 'Well centred — the lift was even all the way round. Hold exactly this bank and do not go looking for better.';
+  } else if (dist < 0.7*radius){
+    text = `Close. Slightly stronger at your <span class="metric">${oclock} o'clock</span> (<span class="metric">${c8}</span>). Ease the bank for a second or two on that side and the circle will drift onto the core.`;
+  } else {
+    text = `Off the core. The best air was <span class="metric">${Math.round(dist)} m</span> to the <span class="metric">${c8}</span>, your <span class="metric">${oclock} o'clock</span>. Straighten about <span class="metric">${secs.toFixed(1)} s</span> as you come round to that heading, then re-establish the turn.`;
+  }
+  showCoach(c, text);
+  renderCircleLog();
+}
+
+function compass8(rad){
+  const names = ['N','NE','E','SE','S','SW','W','NW'];
+  const d = ((rad*180/Math.PI) % 360 + 360) % 360;
+  return names[Math.round(d/45) % 8];
+}
+function clockFace(rad){
+  const d = ((rad*180/Math.PI) % 360 + 360) % 360;
+  const h = Math.round(d/30); return h === 0 ? 12 : h;
+}
+
+function showCoach(c, html){
+  el.coachNum.textContent = c.n;
+  el.coachAvg.textContent = (c.avg >= 0 ? '+' : '−') + Math.abs(c.avg).toFixed(1) + ' m/s';
+  el.coachAvg.style.color = c.avg > 0.2 ? 'var(--lift)' : (c.avg < -0.2 ? 'var(--sink)' : 'var(--ink-2)');
+  el.coachText.innerHTML = html;
+  el.coach.classList.add('show');
+  sim.coachTimer = 11;
+}
+
+/* ═══════ Audio ════════════════════════════════ */
+
+/* The voice itself lives in vario-audio.js, shared with the beeper page,
+   so both pages sound like the same instrument. Here we only feed it the
+   indicated climb rate and record each beep for the audiogram strip. */
+const audio = new VarioAudio({
+  liftThr: cfg.liftThr,
+  sinkThr: cfg.sinkThr,
+  volume: cfg.vol,
+  onBeep: lead => {
+    sim.beeps.push(sim.t + lead);
+    if (sim.beeps.length > 400) sim.beeps.splice(0, sim.beeps.length - 400);
+  }
+});
+
+function initAudio(){ audio.start(); }
+
+/* ═══════ DOM ══════════════════════════════════════════════ */
+
+const el = {};
+['selScenario','btnPause','btnReveal','btnRestart','sGps','sWing','sClock','vbar','pClimb',
+ 'pAlt','pAvg','pSpd','pGlide','aDot','aTitle','aRange','assist','assistOff','btnSniff','btnMute',
+ 'devCaption','map','trace','chipFrame','chipWind','chipReveal','chipEst','coach','coachNum',
+ 'coachAvg','coachText','tLeft','tRight','tSlow','tFast','tLevel','briefText','circleLog','selWing',
+ 'rngWind','valWind','rngTurb','valTurb','rngLag','valLag','rngThr','valThr','rngSink','valSink',
+ 'rngVol','valVol','stGain','stBest','stInLift','stCircles','stCentre','stTime','btnDebrief',
+ 'startOverlay','btnBegin','debriefOverlay','dbTitle','dbLead','dbGrid','dbNotes','btnDbAgain','btnDbClose'
+].forEach(id => el[id] = document.getElementById(id));
+
+function fit(cv){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const r = cv.getBoundingClientRect();
+  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+  if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w:r.width, h:r.height };
+}
+
+/* ── The vario bar (LED segments beside the big number) ────── */
+const VBAR_N = 15;
+(function buildVbar(){
+  for (let i = 0; i < VBAR_N; i++) el.vbar.appendChild(document.createElement('i'));
+})();
+function paintVbar(v){
+  const seg = el.vbar.children;
+  const mid = (VBAR_N - 1) / 2;                 // index 7 is zero
+  const n = Math.round(clamp(v, -5, 5) / 5 * mid);
+  for (let i = 0; i < VBAR_N; i++){
+    const rank = mid - i;                        // +7 at top … −7 at bottom
+    let on = false;
+    if (n > 0) on = rank > 0 && rank <= n;
+    else if (n < 0) on = rank < 0 && rank >= n;
+    const isZero = rank === 0;
+    seg[i].style.background = isZero ? '#2E3E47'
+      : on ? (rank > 0 ? '#12A05A' : '#D2452B') : '#111C22';
+  }
+}
+
+/* ── Thermal assistant ─────────────────────────────────────── */
+function drawAssist(){
+  const { ctx, w, h } = fit(el.assist);
+  ctx.clearRect(0,0,w,h);
+  if (!cfg.sniff || !sim.glider) return;
+
+  const g = sim.glider;
+  const cx = w/2, cy = h/2;
+  const R = Math.min(w, h)/2 - 8;
+  const RANGE = 130;                              // metres shown edge to edge
+  const s = R / RANGE;
+  const X = mx => cx + (mx - g.x) * s;
+  const Y = my => cy - (my - g.y) * s;
+
+  // Range rings
+  ctx.strokeStyle = '#15242C'; ctx.lineWidth = 1;
+  for (const rr of [RANGE/3, RANGE*2/3, RANGE]){
+    ctx.beginPath(); ctx.arc(cx, cy, rr*s, 0, TAU); ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(cx-R, cy); ctx.lineTo(cx+R, cy);
+  ctx.moveTo(cx, cy-R); ctx.lineTo(cx, cy+R);
+  ctx.strokeStyle = '#111C22'; ctx.stroke();
+
+  // Track dots, coloured by what the air was doing there
+  const t0 = sim.t - SNIFF_WINDOW;
+  for (const p of sim.trail){
+    if (p.t < t0) continue;
+    const px = X(p.x), py = Y(p.y);
+    if (Math.hypot(px-cx, py-cy) > R) continue;
+    const age = clamp(1 - (sim.t - p.t)/SNIFF_WINDOW, 0.2, 1);
+    let col;
+    if (p.net > 0.3)       col = `rgba(18,200,110,${age})`;
+    else if (p.net < -0.5) col = `rgba(226,90,60,${age*0.85})`;
+    else                   col = `rgba(120,150,165,${age*0.7})`;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(px, py, p.net > 0.3 ? 3 : 2, 0, TAU); ctx.fill();
+  }
+
+  // The estimate
+  const e = sim.estimate;
+  if (e && e.conf > 0.12){
+    const ex = X(e.x), ey = Y(e.y);
+    const inside = Math.hypot(ex-cx, ey-cy) < R;
+    const a = Math.atan2(ex-cx, -(ey-cy));
+    const alpha = clamp(e.conf, 0.2, 1);
+
+    if (inside){
+      ctx.strokeStyle = `rgba(232,145,43,${alpha})`; ctx.lineWidth = 1.6;
+      ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.arc(ex, ey, 13, 0, TAU); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = `rgba(232,145,43,${alpha})`;
+      ctx.beginPath(); ctx.arc(ex, ey, 3, 0, TAU); ctx.fill();
+    }
+    // Arrow from you toward the core — the thing you actually fly
+    const ar = R - 4;
+    const tipX = cx + Math.sin(a)*ar, tipY = cy - Math.cos(a)*ar;
+    ctx.save(); ctx.translate(tipX, tipY); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(-6.5,4); ctx.lineTo(6.5,4); ctx.closePath();
+    ctx.fillStyle = `rgba(232,145,43,${alpha})`; ctx.fill();
+    ctx.restore();
+  }
+
+  // You, at the centre
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(g.hdg);
+  ctx.beginPath(); ctx.moveTo(0,-8); ctx.lineTo(-6,5); ctx.lineTo(0,2.5); ctx.lineTo(6,5);
+  ctx.closePath(); ctx.fillStyle = '#EAF4F8'; ctx.fill();
+  ctx.restore();
+
+  // North tick
+  ctx.font = '9px ' + FONT_MONO; ctx.fillStyle = '#3C4E58'; ctx.textAlign = 'center';
+  ctx.fillText('N', cx, cy - R + 1);
+}
+
+/* ── The air, from above (instructor view) ─────────────────── */
+function drawMap(){
+  const { ctx, w, h } = fit(el.map);
+  const g = sim.glider;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = '#EDF3F7'; ctx.fillRect(0,0,w,h);
+  if (!g) return;
+
+  const s = cfg.zoom * Math.min(w, h) / 520 * 3.4;      // px per metre
+  const X = mx => w/2 + (mx - g.x) * s;
+  const Y = my => h/2 - (my - g.y) * s;
+
+  if (sim.blind && !cfg.reveal){
+    ctx.fillStyle = '#DFE9EF'; ctx.fillRect(0,0,w,h);
+    ctx.textAlign = 'center';
+    ctx.font = '700 11px ' + FONT_SANS; ctx.fillStyle = '#8FA5B4';
+    ctx.fillText('INSTRUCTOR VIEW OFF — FLY THE SOUND', w/2, h/2 - 8);
+    ctx.font = '11px ' + FONT_SANS;
+    ctx.fillText('Press H when you want to see what you flew', w/2, h/2 + 12);
+    return;
+  }
+
+  // Ground reference, sliding through the airmass. The only place the
+  // wind shows up — and it is the whole lesson of the drift exercise.
+  const drift = (cfg.wind/3.6) * sim.t;
+  const grid = 100;
+  const x0 = g.x - (w/2)/s, x1 = g.x + (w/2)/s;
+  const y0 = g.y - (h/2)/s, y1 = g.y + (h/2)/s;
+  ctx.strokeStyle = '#DCE7EE'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let gx = Math.floor(x0/grid)*grid; gx <= x1; gx += grid){ ctx.moveTo(X(gx), 0); ctx.lineTo(X(gx), h); }
+  for (let gy = Math.floor((y0+drift)/grid)*grid; gy <= y1+drift; gy += grid){
+    ctx.moveTo(0, Y(gy - drift)); ctx.lineTo(w, Y(gy - drift));
+  }
+  ctx.stroke();
+
+  // Fields, so the drift is unmistakable
+  for (const lm of sim.landmarks){
+    const px = X(lm.x), py = Y(lm.y - drift);
+    if (px < -120 || px > w+120 || py < -120 || py > h+120) continue;
+    ctx.fillStyle = 'rgba(203,220,199,.55)'; ctx.strokeStyle = 'rgba(176,197,175,.8)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(px - lm.w*s/2, py - lm.h*s/2, lm.w*s, lm.h*s);
+    ctx.fill(); ctx.stroke();
+  }
+
+  // The truth, when revealed
+  if (cfg.reveal){
+    for (const th of sim.thermals){
+      const c = thermalCentre(th, g.z, sim.t);
+      const R = thermalRadius(th, g.z);
+      const S = thermalStrength(th, g.z, sim.t);
+      if (S <= 0.05) continue;
+      const px = X(c.x), py = Y(c.y);
+      const alpha = clamp(S/3.2, 0.08, 0.55);
+      const rg = ctx.createRadialGradient(px, py, 0, px, py, R*2*s);
+      rg.addColorStop(0,   `rgba(232,145,43,${alpha*0.6})`);
+      rg.addColorStop(0.5, `rgba(232,145,43,${alpha*0.16})`);
+      rg.addColorStop(1,   'rgba(232,145,43,0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.arc(px, py, R*2*s, 0, TAU); ctx.fill();
+
+      ctx.strokeStyle = 'rgba(200,112,20,.6)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(px, py, R*s, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = 'rgba(210,69,43,.3)'; ctx.setLineDash([3,5]);
+      ctx.beginPath(); ctx.arc(px, py, 1.9*R*s, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#C87014';
+      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, TAU); ctx.fill();
+      ctx.font = '600 10px ' + FONT_MONO; ctx.textAlign = 'center'; ctx.fillStyle = '#A85B0E';
+      ctx.fillText('+' + S.toFixed(1), px, py - 9);
+    }
+  }
+
+  // Track, coloured by what the air was doing
+  const tr = sim.trail;
+  if (tr.length > 1){
+    ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    for (let i = 1; i < tr.length; i++){
+      const a = tr[i-1], b = tr[i], v = b.net;
+      ctx.strokeStyle = v > 0.2  ? `rgba(18,160,90,${clamp(0.4 + v/4, .4, .95)})`
+                      : v < -0.8 ? `rgba(210,69,43,${clamp(0.35 + (-v-0.8)/3, .35, .8)})`
+                                 : 'rgba(123,144,161,.45)';
+      ctx.beginPath(); ctx.moveTo(X(a.x), Y(a.y)); ctx.lineTo(X(b.x), Y(b.y)); ctx.stroke();
+    }
+  }
+
+  // What the instrument thinks — draw it against the truth so the
+  // gap between the two is visible.
+  const e = sim.estimate;
+  if (cfg.sniff && e && e.conf > 0.12){
+    const px = X(e.x), py = Y(e.y);
+    ctx.strokeStyle = `rgba(14,107,122,${clamp(e.conf,.3,.9)})`; ctx.lineWidth = 1.6;
+    ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.arc(px, py, 15, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(g.x), Y(g.y)); ctx.lineTo(px, py); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#0E6B7A';
+    ctx.beginPath(); ctx.arc(px, py, 3, 0, TAU); ctx.fill();
+    ctx.font = '600 10px ' + FONT_MONO; ctx.textAlign = 'center'; ctx.fillStyle = '#0E6B7A';
+    ctx.fillText('SNIFFER', px, py + 27);
+  }
+
+  // Coach arrow — where the core was on the last circle
+  const last = sim.circles[sim.circles.length-1];
+  if (last && sim.coachTimer > 0 && last.dist > 4){
+    const px = X(last.cx), py = Y(last.cy);
+    const ex = X(last.cx + last.ox), ey = Y(last.cy + last.oy);
+    ctx.strokeStyle = 'rgba(200,112,20,.85)'; ctx.lineWidth = 1.8;
+    ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.setLineDash([]);
+    const ang = Math.atan2(ey-py, ex-px);
+    ctx.save(); ctx.translate(ex, ey); ctx.rotate(ang);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-9,-4.5); ctx.lineTo(-9,4.5); ctx.closePath();
+    ctx.fillStyle = '#C87014'; ctx.fill(); ctx.restore();
+  }
+
+  drawGlider(ctx, X(g.x), Y(g.y), g, s);
+
+  // Scale bar
+  const barM = niceScale(120/s), barPx = barM*s;
+  ctx.strokeStyle = '#8FA5B4'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(14, h-18); ctx.lineTo(14+barPx, h-18);
+  ctx.moveTo(14, h-22); ctx.lineTo(14, h-14);
+  ctx.moveTo(14+barPx, h-22); ctx.lineTo(14+barPx, h-14);
+  ctx.stroke();
+  ctx.font = '10px ' + FONT_MONO; ctx.textAlign = 'left'; ctx.fillStyle = '#7B90A1';
+  ctx.fillText(barM + ' m', 14, h-26);
+
+  // North
+  ctx.save(); ctx.translate(w-26, h-30);
+  ctx.strokeStyle = '#8FA5B4'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(0,-10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(-3.5,-5); ctx.lineTo(3.5,-5); ctx.closePath();
+  ctx.fillStyle = '#7B90A1'; ctx.fill();
+  ctx.textAlign='center'; ctx.font='9px '+FONT_MONO; ctx.fillText('N', 0, 22);
+  ctx.restore();
+}
+
+function niceScale(m){
+  for (const s of [10,20,25,50,100,200,250,500,1000,2000]) if (m <= s) return s;
+  return 2000;
+}
+
+function drawGlider(ctx, px, py, g, s){
+  ctx.save(); ctx.translate(px, py); ctx.rotate(g.hdg);
+  const r = turnRadius(g);
+  if (isFinite(r)){
+    const side = g.bank > 0 ? 1 : -1;
+    ctx.beginPath(); ctx.arc(side*r*s, 0, r*s, 0, TAU);
+    ctx.strokeStyle = 'rgba(19,32,41,.14)'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  const b = g.bank;
+  ctx.beginPath();
+  ctx.moveTo(0,-9); ctx.lineTo(-9*Math.cos(b), 5); ctx.lineTo(0, 2); ctx.lineTo(9*Math.cos(b), 5);
+  ctx.closePath();
+  ctx.fillStyle = '#132029'; ctx.fill();
+  ctx.restore();
+}
+
+/* ── The audiogram: what you should be hearing ─────────────── */
+function drawTrace(){
+  const { ctx, w, h } = fit(el.trace);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0,0,w,h);
+
+  const WIN = 60, FS = 5, padT = 26;
+  const t1 = sim.t, t0 = t1 - WIN;
+  const mid = padT + (h - padT)/2;
+  const yScale = (h - padT)/2/FS;
+  const X = t => (t - t0)/WIN * w;
+  const Y = v => mid - clamp(v, -FS, FS) * yScale;
+
+  ctx.fillStyle = '#F0F5F8';
+  ctx.fillRect(0, Y(cfg.liftThr), w, Y(cfg.sinkThr) - Y(cfg.liftThr));
+
+  ctx.strokeStyle = '#E7EFF4'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let v = -4; v <= 4; v += 2){ ctx.moveTo(0, Y(v)); ctx.lineTo(w, Y(v)); }
+  ctx.stroke();
+  ctx.strokeStyle = '#C6D6E1';
+  ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(w, Y(0)); ctx.stroke();
+
+  const pts = [];
+  for (let i = sim.traceHist.length-1; i >= 0; i--){
+    if (sim.traceHist[i].t < t0) break;
+    pts.push(sim.traceHist[i]);
+  }
+  pts.reverse();
+
+  if (pts.length > 1){
+    ctx.beginPath(); ctx.moveTo(X(pts[0].t), Y(0));
+    for (const p of pts) ctx.lineTo(X(p.t), Y(Math.max(0, p.v)));
+    ctx.lineTo(X(pts[pts.length-1].t), Y(0)); ctx.closePath();
+    ctx.fillStyle = 'rgba(18,160,90,.22)'; ctx.fill();
+
+    ctx.beginPath(); ctx.moveTo(X(pts[0].t), Y(0));
+    for (const p of pts) ctx.lineTo(X(p.t), Y(Math.min(0, p.v)));
+    ctx.lineTo(X(pts[pts.length-1].t), Y(0)); ctx.closePath();
+    ctx.fillStyle = 'rgba(210,69,43,.18)'; ctx.fill();
+
+    ctx.beginPath();
+    pts.forEach((p,i) => i ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v)));
+    ctx.strokeStyle = '#132029'; ctx.lineWidth = 1.4; ctx.stroke();
+
+    // The true air, undelayed — the gap is the instrument's lag
+    ctx.beginPath();
+    pts.forEach((p,i) => i ? ctx.lineTo(X(p.t), Y(p.net)) : ctx.moveTo(X(p.t), Y(p.net)));
+    ctx.strokeStyle = 'rgba(200,112,20,.7)'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  for (const bt of sim.beeps){
+    if (bt < t0) continue;
+    ctx.strokeStyle = 'rgba(18,160,90,.9)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(X(bt), 6); ctx.lineTo(X(bt), 18); ctx.stroke();
+  }
+
+  for (const c of sim.circles){
+    if (c.t < t0) continue;
+    ctx.strokeStyle = 'rgba(200,112,20,.3)'; ctx.lineWidth = 1; ctx.setLineDash([2,3]);
+    ctx.beginPath(); ctx.moveTo(X(c.t), padT); ctx.lineTo(X(c.t), h); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  ctx.font = '9px ' + FONT_MONO; ctx.fillStyle = '#9DAFBD'; ctx.textAlign = 'right';
+  ctx.fillText('+5', w-4, Y(5)+9);
+  ctx.fillText('−5', w-4, Y(-5)-3);
+  ctx.textAlign = 'left'; ctx.fillStyle = '#A87418';
+  ctx.fillText('dashed = the air · solid = your vario', 12, h-7);
+}
+
+/* ═══════ Loop ═════════════════════════════════════════════ */
+
+let lastT = 0, trailT = 0, estT = 0;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - lastT)/1000 || 0);
+  lastT = now;
+
+  if (sim.running && !sim.paused && !sim.landed){
+    const STEP = 1/120;
+    let acc = dt;
+    while (acc > 1e-4){
+      const s = Math.min(STEP, acc);
+      sim.t += s; stepPhysics(s); acc -= s;
+      if (sim.landed) break;
+    }
+    const g = sim.glider;
+    trailT += dt;
+    if (trailT > 0.15){
+      trailT = 0;
+      sim.trail.push({ x:g.x, y:g.y, z:g.z, net:g.net, t:sim.t });
+      if (sim.trail.length > 4000){ sim.trail.shift(); sim.circleStart = Math.max(0, sim.circleStart-1); }
+    }
+    sim.traceHist.push({ t:sim.t, v:g.vario, net:g.net, z:g.z });
+    if (sim.traceHist.length > 3000) sim.traceHist.shift();
+
+    estT += dt;
+    if (estT > 0.4){ estT = 0; updateEstimate(); }
+
+    if (sim.coachTimer > 0){
+      sim.coachTimer -= dt;
+      if (sim.coachTimer <= 0) el.coach.classList.remove('show');
+    }
+    audio.setValue(g.vario);
+    updateReadouts();
+  }
+
+  audio.setEnabled(sim.running && !sim.paused && !sim.landed && !cfg.muted);
+  drawMap(); drawAssist(); drawTrace();
+}
+
+/* ═══════ Readouts ═════════════════════════════════════════ */
+
+function fmtClock(s){
+  const m = Math.floor(s/60), ss = Math.floor(s%60);
+  return m + ':' + String(ss).padStart(2,'0');
+}
+
+function updateReadouts(){
+  const g = sim.glider, s = sim.stats;
+
+  const vcol = g.vario > cfg.liftThr ? 'var(--lift)'
+             : g.vario < cfg.sinkThr ? 'var(--sink)' : 'var(--screen-ink)';
+  el.pClimb.textContent = (g.vario >= 0 ? '+' : '−') + Math.abs(g.vario).toFixed(1);
+  el.pClimb.style.color = vcol;
+  paintVbar(g.vario);
+
+  el.pAlt.innerHTML = Math.round(g.z) + '<small>M</small>';
+  el.pAvg.innerHTML = (g.avg30>=0?'+':'−') + Math.abs(g.avg30).toFixed(1) + '<small>M/S</small>';
+  el.pAvg.style.color = g.avg30 > 0.2 ? 'var(--lift)' : g.avg30 < -0.2 ? 'var(--sink)' : 'var(--screen-ink)';
+  el.pSpd.innerHTML = Math.round(g.v*3.6) + '<small>KM/H</small>';
+  const glide = g.net < -0.05 ? g.v / -g.net : Infinity;
+  el.pGlide.textContent = g.net > -0.05 ? '↑' : (glide > 30 ? '30+' : glide.toFixed(1));
+  el.sClock.textContent = fmtClock(s.time);
+
+  // Assistant header
+  const e = sim.estimate;
+  if (!cfg.sniff){ el.aRange.textContent = '—'; el.aDot.hidden = true; }
+  else if (e && e.conf > 0.12){
+    el.aRange.textContent = Math.round(e.dist) + ' m · ' + Math.round(e.conf*100) + '%';
+    el.aDot.hidden = false;
+  } else {
+    el.aRange.textContent = 'searching';
+    el.aDot.hidden = true;
+  }
+
+  el.stGain.textContent = (g.z - s.z0 >= 0 ? '+' : '−') + Math.abs(Math.round(g.z - s.z0)) + ' m';
+  el.stGain.style.color = g.z >= s.z0 ? 'var(--lift)' : 'var(--sink)';
+  el.stBest.textContent = (s.best30 > -90 ? (s.best30>=0?'+':'−') + Math.abs(s.best30).toFixed(1) : '0.0') + ' m/s';
+  el.stInLift.textContent = Math.round(100*s.inLift/Math.max(1,s.time)) + '%';
+  el.stCircles.textContent = s.circles;
+  el.stTime.textContent = fmtClock(s.time);
+
+  const score = centringScore();
+  el.stCentre.textContent = score === null ? '—' : Math.round(score*100) + '%';
+  el.stCentre.style.color = score === null ? 'var(--ink)'
+    : score > 0.7 ? 'var(--lift)' : score > 0.4 ? 'var(--warn)' : 'var(--sink)';
+
+  el.devCaption.textContent = sim.atBase ? 'Cloudbase. Stop climbing and go somewhere.'
+    : sim.landed ? 'On the ground.'
+    : sim.paused ? 'Paused.'
+    : 'This is all the student gets in the air: a number, a bar, and the beeps.';
+}
+
+/* How much of what was on offer did you actually take? */
+function centringScore(){
+  const recent = sim.circles.slice(-4).filter(c => c.peak > 0.3);
+  if (!recent.length) return null;
+  let got = 0, avail = 0;
+  for (const c of recent){ got += Math.max(0, c.avg); avail += c.peak; }
+  return avail > 0 ? clamp(got/avail, 0, 1) : null;
+}
+
+function renderCircleLog(){
+  const list = sim.circles.slice(-7).reverse();
+  if (!list.length){
+    el.circleLog.innerHTML = '<p class="empty">Fly a full 360 and the coach will tell you where the core was.</p>';
+    return;
+  }
+  el.circleLog.innerHTML = list.map(c => {
+    const pct = clamp((c.avg + 1)/5, 0, 1)*100;
+    const col = c.avg > 0.2 ? 'var(--lift)' : c.avg < -0.2 ? 'var(--sink)' : 'var(--muted)';
+    return `<div class="log-row">
+      <span class="n">#${c.n}</span>
+      <span class="bar"><i style="width:${pct.toFixed(0)}%;background:${col}"></i></span>
+      <span class="r" style="color:${col}">${c.avg>=0?'+':'−'}${Math.abs(c.avg).toFixed(1)}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════ Lifecycle ════════════════════════════════════════ */
+
+function buildWorld(){
+  const f = SCENARIOS[cfg.scenario].field;
+  const rnd = mulberry(1337 + cfg.scenario.length*97);
+  sim.thermals = [];
+  const placed = f.place || [];
+  for (let i = 0; i < f.n; i++){
+    let x, y;
+    if (i < placed.length){ x = placed[i][0]; y = placed[i][1]; }
+    else { const a = rnd()*TAU, d = 220 + rnd()*(f.spread||600); x = Math.sin(a)*d; y = Math.cos(a)*d; }
+    const th = makeThermal(x, y, f, 100 + i*17);
+    // A hand-placed thermal is the one the exercise points you at, so it
+    // is already established rather than half-born or dying.
+    if (i < placed.length) th.t0 = -30;
+    sim.thermals.push(th);
+  }
+  sim.landmarks = [];
+  for (let i = 0; i < 26; i++){
+    sim.landmarks.push({ x:(rnd()-0.5)*3000, y:(rnd()-0.5)*3000,
+                         w:90 + rnd()*220, h:70 + rnd()*180 });
+  }
+}
+
+function resetFlight(keepSettings){
+  const sc = SCENARIOS[cfg.scenario];
+  if (!keepSettings){
+    cfg.wing = sc.wing; cfg.wind = sc.wind; cfg.turb = sc.turb;
+    cfg.reveal = sc.reveal; cfg.sniff = !!sc.sniff; cfg.zoom = sc.zoom;
+  }
+  sim.blind = !!sc.blind;
+  sim.leanRef = sc.start;
+  sim.t = 0; sim.landed = false; sim.paused = false; sim.atBase = false;
+  sim.trail = []; sim.beeps = []; sim.traceHist = []; sim.circles = [];
+  sim.turnAccum = 0; sim.circleStart = 0; sim.coachTimer = 0; sim.estimate = null;
+  el.coach.classList.remove('show');
+  buildWorld();
+  sim.glider = newGlider();
+  sim.stats = { time:0, inLift:0, best30:-99, circles:0, z0:sim.glider.z, peakHere:0 };
+  el.briefText.innerHTML = sc.brief;
+  el.btnPause.textContent = 'Pause';
+  renderCircleLog(); syncControls(); updateReadouts();
+}
+
+function land(){
+  sim.landed = true; sim.running = false;
+  showDebrief(true);
+}
+
+function showDebrief(landed){
+  const s = sim.stats, g = sim.glider;
+  const gain = g.z - s.z0, score = centringScore();
+  el.dbTitle.textContent = landed ? 'On the ground' : 'Debrief';
+  el.dbLead.innerHTML = landed
+    ? 'You ran out of height. Every flight ends here eventually — the question is how much of the day you used first.'
+    : `<strong>${SCENARIOS[cfg.scenario].name}</strong> — here is what the air gave you and what you took.`;
+
+  const cells = [
+    ['Height gained', (gain>=0?'+':'−') + Math.abs(Math.round(gain)) + ' m', gain>=0?'var(--lift)':'var(--sink)'],
+    ['Best 30 s', (s.best30>-90 ? (s.best30>=0?'+':'−') + Math.abs(s.best30).toFixed(1) : '0.0') + ' m/s', 'var(--ink)'],
+    ['Time in lift', Math.round(100*s.inLift/Math.max(1,s.time)) + '%', 'var(--ink)'],
+    ['Circles flown', String(s.circles), 'var(--ink)'],
+    ['Centring', score===null ? '—' : Math.round(score*100)+'%',
+      score===null?'var(--ink)':score>0.7?'var(--lift)':score>0.4?'var(--warn)':'var(--sink)'],
+    ['Airtime', fmtClock(s.time), 'var(--ink)']
+  ];
+  el.dbGrid.innerHTML = cells.map(([k,v,c]) =>
+    `<div class="stat"><span class="label">${k}</span><span class="v" style="color:${c}">${v}</span></div>`).join('');
+
+  const avgCircle = sim.circles.length ? sim.circles.reduce((a,c)=>a+c.avg,0)/sim.circles.length : 0;
+  const meanOff = sim.circles.length
+    ? sim.circles.reduce((a,c)=>a+c.dist/Math.max(1,c.radius),0)/sim.circles.length : 0;
+
+  let note;
+  if (!s.circles){
+    note = 'You never completed a full 360. Thermals are found by flying straight and turning the moment the tone comes up — commit to the turn before you are sure.';
+  } else if (avgCircle < 0){
+    note = 'Your circles averaged sink. That usually means you turned on a gust rather than on sustained lift, or you kept circling where the beeps started instead of moving to where they were loudest.';
+  } else if (meanOff > 0.7){
+    note = 'You were consistently off to one side — your circles were tangent to the core rather than around it. When one part of every turn sings louder, straighten a second or two heading that way, then wind the bank straight back on.';
+  } else if (score !== null && score > 0.7){
+    note = 'Well centred — you took most of what was on offer. Try the next exercise, or push the response lag up and fly the same thermal on a slower instrument.';
+  } else {
+    note = 'Solid contact, loose centring. The usual cause is chasing the needle: the vario is late, so by the time it peaks you have already flown past the core. Trust the trend, not the instant.';
+  }
+  el.dbNotes.textContent = note;
+  el.debriefOverlay.hidden = false;
+}
+
+/* ═══════ Controls ═════════════════════════════════════════ */
+
+function turbName(t){
+  return t < 0.15 ? 'Glassy' : t < 0.35 ? 'Light' : t < 0.6 ? 'Moderate' : t < 0.85 ? 'Rough' : 'Violent';
+}
+
+function syncControls(){
+  el.selScenario.value = cfg.scenario;
+  el.selWing.value = cfg.wing;
+  el.rngWind.value = cfg.wind;   el.valWind.textContent = cfg.wind + ' km/h';
+  el.rngTurb.value = Math.round(cfg.turb*100); el.valTurb.textContent = turbName(cfg.turb);
+  el.btnReveal.classList.toggle('on', cfg.reveal);
+  el.btnSniff.classList.toggle('on', cfg.sniff);
+  el.btnMute.classList.toggle('on', !cfg.muted);
+  el.btnMute.textContent = cfg.muted ? 'Muted' : 'Sound';
+  el.sWing.textContent = WINGS[cfg.wing].name.split(' (')[0];
+  el.assistOff.hidden = cfg.sniff;
+  el.chipReveal.hidden = !cfg.reveal;
+  el.chipEst.hidden = !cfg.sniff;
+  el.chipWind.textContent = cfg.wind === 0 ? 'Wind calm' : `Wind ${cfg.wind} km/h from N`;
+  el.chipFrame.textContent = sim.blind && !cfg.reveal ? 'Instructor view off' : 'Air-mass view · north up';
+}
+
+const keys = Object.create(null);
+function applyInput(dt){
+  const c = WINGS[cfg.wing], g = sim.glider;
+  if (!g || !sim.running || sim.paused || sim.landed) return;
+  const maxB = c.maxBank*Math.PI/180, rate = 32*Math.PI/180;
+  if (keys.left)  g.bankTarget = clamp(g.bankTarget - rate*dt, -maxB, maxB);
+  if (keys.right) g.bankTarget = clamp(g.bankTarget + rate*dt, -maxB, maxB);
+  if (keys.level) g.bankTarget += clamp(-g.bankTarget, -rate*1.6*dt, rate*1.6*dt);
+  if (keys.fast)  g.vTarget = clamp(g.vTarget + 2.5*dt, c.vMin, c.vMax);
+  if (keys.slow)  g.vTarget = clamp(g.vTarget - 2.5*dt, c.vMin, c.vMax);
+}
+let inputLast = 0;
+function inputLoop(now){
+  requestAnimationFrame(inputLoop);
+  const dt = Math.min(0.05, (now - inputLast)/1000 || 0);
+  inputLast = now;
+  applyInput(dt);
+}
+
+const KEYMAP = {
+  ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right',
+  ArrowUp:'fast', KeyW:'fast', ArrowDown:'slow', KeyS:'slow', KeyX:'level'
+};
+
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const k = KEYMAP[e.code];
+  if (k){ keys[k] = true; e.preventDefault(); return; }
+  switch (e.code){
+    case 'Space': e.preventDefault(); togglePause(); break;
+    case 'KeyH': toggleReveal(); break;
+    case 'KeyT': toggleSniff(); break;
+    case 'KeyM': toggleMute(); break;
+    case 'KeyR': resetFlight(true); sim.running = true; break;
+    case 'Equal': case 'NumpadAdd':      cfg.zoom = clamp(cfg.zoom*1.25, 0.3, 4); break;
+    case 'Minus': case 'NumpadSubtract': cfg.zoom = clamp(cfg.zoom/1.25, 0.3, 4); break;
+  }
+});
+addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k){ keys[k] = false; e.preventDefault(); } });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+function hold(btn, key){
+  const on  = e => { e.preventDefault(); keys[key] = true; };
+  const off = e => { e.preventDefault(); keys[key] = false; };
+  btn.addEventListener('pointerdown', on);
+  btn.addEventListener('pointerup', off);
+  btn.addEventListener('pointerleave', off);
+  btn.addEventListener('pointercancel', off);
+}
+hold(el.tLeft,'left'); hold(el.tRight,'right');
+hold(el.tFast,'fast'); hold(el.tSlow,'slow'); hold(el.tLevel,'level');
+
+function togglePause(){
+  if (!sim.running || sim.landed) return;
+  sim.paused = !sim.paused;
+  el.btnPause.textContent = sim.paused ? 'Resume' : 'Pause';
+  updateReadouts();
+}
+function toggleReveal(){ cfg.reveal = !cfg.reveal; syncControls(); }
+function toggleSniff(){ cfg.sniff = !cfg.sniff; if (cfg.sniff) updateEstimate(); syncControls(); }
+function toggleMute(){ cfg.muted = !cfg.muted; syncControls(); }
+
+el.btnPause.onclick = togglePause;
+el.btnReveal.onclick = toggleReveal;
+el.btnSniff.onclick = toggleSniff;
+el.btnMute.onclick = toggleMute;
+el.btnRestart.onclick = () => { resetFlight(true); sim.running = true; };
+el.btnDebrief.onclick = () => showDebrief(false);
+el.btnDbAgain.onclick = () => { el.debriefOverlay.hidden = true; resetFlight(true); sim.running = true; };
+el.btnDbClose.onclick = () => { el.debriefOverlay.hidden = true; cfg.reveal = true; syncControls(); };
+
+el.selScenario.innerHTML = Object.entries(SCENARIOS).map(([k,v]) => `<option value="${k}">${v.name}</option>`).join('');
+el.selWing.innerHTML = Object.entries(WINGS).map(([k,v]) => `<option value="${k}">${v.name}</option>`).join('');
+
+el.selScenario.onchange = e => { cfg.scenario = e.target.value; resetFlight(false); sim.running = true; };
+el.selWing.onchange = e => {
+  cfg.wing = e.target.value;
+  const c = WINGS[cfg.wing];
+  if (sim.glider){ sim.glider.v = sim.glider.vTarget = c.vTrim; }
+  syncControls();
+};
+
+el.rngWind.oninput = e => { cfg.wind = +e.target.value; el.valWind.textContent = cfg.wind + ' km/h';
+  el.chipWind.textContent = cfg.wind === 0 ? 'Wind calm' : `Wind ${cfg.wind} km/h from N`; };
+el.rngTurb.oninput = e => { cfg.turb = +e.target.value/100; el.valTurb.textContent = turbName(cfg.turb); };
+el.rngLag.oninput  = e => { cfg.lag = +e.target.value/10; el.valLag.textContent = cfg.lag.toFixed(1) + ' s'; };
+el.rngThr.oninput  = e => { cfg.liftThr = +e.target.value/100;
+  el.valThr.textContent = '+' + cfg.liftThr.toFixed(2).replace(/0$/,'') + ' m/s';
+  audio.setThresholds(cfg.liftThr, null); };
+el.rngSink.oninput = e => { cfg.sinkThr = -(+e.target.value/10);
+  el.valSink.textContent = '−' + Math.abs(cfg.sinkThr).toFixed(1) + ' m/s';
+  audio.setThresholds(null, cfg.sinkThr); };
+el.rngVol.oninput  = e => { cfg.vol = +e.target.value/100; el.valVol.textContent = e.target.value + '%';
+  audio.setVolume(cfg.vol); };
+
+el.btnBegin.onclick = () => {
+  initAudio();
+  el.startOverlay.hidden = true;
+  resetFlight(false);
+  sim.running = true;
+};
+
+/* ═══════ Go ═══════════════════════════════════════════════ */
+resetFlight(false);
+requestAnimationFrame(frame);
+requestAnimationFrame(inputLoop);
+</script>
+</body>
+</html>
