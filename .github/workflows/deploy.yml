@@ -7,10 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Publishing to the gh-pages branch needs nothing but write access to the
+# repo, so this works without an admin first enabling Pages by hand.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 # Let a running deploy finish rather than cancelling it mid-publish.
 concurrency:
@@ -20,27 +20,37 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Check out
         uses: actions/checkout@v4
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          # Turn Pages on automatically the first time this runs, so the
-          # repo needs no manual setup in Settings.
-          enablement: true
+      - name: Publish to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
 
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # The simulator is a single self-contained index.html at the
-          # repo root, so the root is the site.
-          path: .
+          # The simulator is a single self-contained index.html, so the
+          # published site is just that file.
+          site="$(mktemp -d)"
+          cp index.html "$site/"
+          touch "$site/.nojekyll"          # serve the file as-is, no Jekyll
 
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          cd "$site"
+          git init -q -b gh-pages
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA:0:7}"
+
+          # The branch is generated output, so replacing it each time is
+          # correct — there is no history worth keeping.
+          git push -f \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            gh-pages
+
+      - name: Where it landed
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"
+          repo="${GITHUB_REPOSITORY##*/}"
+          echo "Published to https://${owner,,}.github.io/${repo}/" >> "$GITHUB_STEP_SUMMARY"

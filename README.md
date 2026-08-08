@@ -126,8 +126,14 @@ lesson; muted, this is just a diagram.
 ## Deploying
 
 Pushed to `main`, GitHub Actions publishes it to GitHub Pages
-(`.github/workflows/deploy.yml`). The workflow enables Pages on first run, so
-there is nothing to configure by hand.
+(`.github/workflows/deploy.yml`). The workflow copies `index.html` onto a
+`gh-pages` branch, which needs only `contents: write` — no admin has to enable
+Pages by hand first.
+
+If you would rather use the newer Actions-based Pages source (`actions/deploy-pages`),
+switch **Settings → Pages → Source** to *GitHub Actions* and swap the publish
+step for `actions/upload-pages-artifact` + `actions/deploy-pages`. That route
+needs the one-time settings change; this one does not.
 
 ---
 
