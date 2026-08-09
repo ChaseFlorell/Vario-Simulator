@@ -583,8 +583,8 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
     <p>Rising pitch and faster beeps mean you are going up. A low growl means you are sinking out and should leave. Silence is the deadband either side of zero.</p>
     <div class="rule"></div>
     <div class="keylist">
-      <span class="k">Slider</span><span class="d">Weight shift. Slide left or right to bank; it holds where you leave it, so you can settle into a circle.</span>
-      <span class="k">← →</span><span class="d">The same thing from the keyboard — hold to steepen.</span>
+      <span class="k">Slider</span><span class="d">Weight shift. Slide left or right to bank, and hold it there to stay in the turn — let go and it eases back to level.</span>
+      <span class="k">← →</span><span class="d">The same bank from the keyboard. These hold where you leave them, so use the keys to settle into a long climb.</span>
       <span class="k">X</span><span class="d">Wings level.</span>
       <span class="k">↑ ↓</span><span class="d">Speed bar on / off.</span>
       <span class="k">T</span><span class="d">Thermal sniffer — show what the instrument infers about the core.</span>
@@ -1528,6 +1528,7 @@ function resetFlight(keepSettings){
   sim.t = 0; sim.landed = false; sim.paused = false; sim.atBase = false;
   sim.trail = []; sim.beeps = []; sim.traceHist = []; sim.circles = [];
   sim.turnAccum = 0; sim.circleStart = 0; sim.coachTimer = 0; sim.estimate = null;
+  springing = false; steerDragging = false;
   el.coach.classList.remove('show');
   buildWorld();
   sim.glider = newGlider();
@@ -1610,8 +1611,10 @@ function applyInput(dt){
   const c = WINGS[cfg.wing], g = sim.glider;
   if (!g || !sim.running || sim.paused || sim.landed) return;
   const maxB = c.maxBank*Math.PI/180, rate = 32*Math.PI/180;
+  if (keys.left || keys.right) cancelSpring();
   if (keys.left)  g.bankTarget = clamp(g.bankTarget - rate*dt, -maxB, maxB);
   if (keys.right) g.bankTarget = clamp(g.bankTarget + rate*dt, -maxB, maxB);
+  stepSpring(dt);
   if (keys.fast)  g.vTarget = clamp(g.vTarget + 2.5*dt, c.vMin, c.vMax);
   if (keys.slow)  g.vTarget = clamp(g.vTarget - 2.5*dt, c.vMin, c.vMax);
 }
@@ -1633,11 +1636,15 @@ const KEYMAP = {
    roll out at its own rate. */
 function levelWings(){
   const g = sim.glider;
+  cancelSpring();
   if (g && sim.running && !sim.paused && !sim.landed) g.bankTarget = 0;
 }
 
 addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  // Other sliders keep their native arrow-key stepping; the steering one
+  // must not, or the arrows would nudge it a hundredth at a time.
+  if ((e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')
+      && e.target.id !== 'rngSteer') return;
   const k = KEYMAP[e.code];
   if (k){ keys[k] = true; e.preventDefault(); return; }
   switch (e.code){
@@ -1651,7 +1658,12 @@ addEventListener('keydown', e => {
     case 'Minus': case 'NumpadSubtract': cfg.zoom = clamp(cfg.zoom/1.25, 0.3, 4); break;
   }
 });
-addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k){ keys[k] = false; e.preventDefault(); } });
+addEventListener('keyup', e => {
+  if ((e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')
+      && e.target.id !== 'rngSteer') return;
+  const k = KEYMAP[e.code];
+  if (k){ keys[k] = false; e.preventDefault(); }
+});
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
 function hold(btn, key){
@@ -1668,18 +1680,58 @@ el.tLevel.addEventListener('click', levelWings);
 /* ── Weight-shift slider ───────────────────────────────────────
    The slider and the arrow keys are two handles on one value: the
    commanded bank. Dragging sets it; the keys ramp it; either way the
-   slider shows where the wing has been told to go. */
+   slider shows where the wing has been told to go.
+
+   Let go of the slider and it flies back to centre, the way a weight
+   shift unloads when you stop holding it. The keys do NOT spring —
+   they ramp rather than hold a position, so springing them would leave
+   the keyboard unable to sustain any bank short of full deflection. */
+const SPRING_RATE = 30;      // degrees of bank per second
+const SPRING_MIN  = 1.0;     // ...but never snappier than this, seconds
+
 let steerDragging = false;
+let springing = false, springFrom = 0, springElapsed = 0, springDur = 0;
+
 function maxBankRad(){ return WINGS[cfg.wing].maxBank * Math.PI/180; }
+
+function startSpring(){
+  const g = sim.glider;
+  if (!g) return;
+  const deg = Math.abs(g.bankTarget) * 180/Math.PI;
+  if (deg < 0.1){ g.bankTarget = 0; springing = false; return; }
+  springFrom = g.bankTarget;
+  springDur = Math.max(SPRING_MIN, deg / SPRING_RATE);   // 90° → 3 s, 15° → 1 s
+  springElapsed = 0;
+  springing = true;
+}
+function cancelSpring(){ springing = false; }
+
+/* Called from the input loop so the return is frame-rate independent. */
+function stepSpring(dt){
+  if (!springing) return;
+  const g = sim.glider;
+  if (!g){ springing = false; return; }
+  springElapsed += dt;
+  if (springElapsed >= springDur){ g.bankTarget = 0; springing = false; return; }
+  g.bankTarget = springFrom * (1 - springElapsed/springDur);
+}
 
 el.rngSteer.addEventListener('input', () => {
   const g = sim.glider;
   if (!g) return;
+  cancelSpring();
   g.bankTarget = (+el.rngSteer.value) * maxBankRad();
 });
-el.rngSteer.addEventListener('pointerdown', () => { steerDragging = true; });
-addEventListener('pointerup',     () => { steerDragging = false; });
-addEventListener('pointercancel', () => { steerDragging = false; });
+el.rngSteer.addEventListener('pointerdown', () => { steerDragging = true; cancelSpring(); });
+
+function releaseSteer(){
+  if (!steerDragging) return;
+  steerDragging = false;
+  startSpring();
+}
+addEventListener('pointerup', releaseSteer);
+addEventListener('pointercancel', releaseSteer);
+addEventListener('blur', releaseSteer);
 
 /* Keys move the commanded bank, so the slider has to follow them. */
 function syncSteer(){

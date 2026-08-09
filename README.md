@@ -119,14 +119,24 @@ The side panel keeps a bar chart of every circle's average climb, and
 
 ## Controls
 
-Steering is a **weight-shift slider** under the map: drag it left or right and it
-holds where you leave it, so you can settle into a circle rather than tapping to
-stay there. Its position is the *commanded* bank — the wing rolls toward it at a
-realistic rate, so there is a beat between asking and getting, same as the wing.
+Steering is a **weight-shift slider** under the map. Its position is the
+*commanded* bank — the wing rolls toward it at a realistic rate, so there is a
+beat between asking and getting, same as the wing.
+
+Let go and it eases back to level, the way a weight shift unloads when you stop
+holding it. The return runs at 30°/s but never takes less than a second, so a
+full-deflection 52° turn unwinds in about 1.7 s and a gentle 15° one still takes
+the full second rather than snapping straight.
+
+The arrow keys drive the same bank but **do not** spring back. That is deliberate:
+they ramp at a rate rather than holding a position, so springing them would leave
+the keyboard unable to sustain any bank short of full deflection. In practice the
+slider suits a phone and short corrections; the keys suit settling into a long
+climb without holding anything down.
 
 | Key | Action |
 |-----|--------|
-| `←` `→` | Weight-shift, same value as the slider. Hold to steepen. |
+| `←` `→` | Weight-shift, same value as the slider. Hold to steepen; stays where you leave it. |
 | `X` | Wings level (a tap, not a hold) |
 | `↑` `↓` | Speed bar on / off |
 | `T` | Thermal sniffer |
