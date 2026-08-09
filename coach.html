@@ -224,7 +224,7 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
 .chip.est{ color:var(--accent); border-color:#A9D3DA; background:var(--accent-wash); }
 
 .coach{
-  position:absolute; left:12px; right:12px; bottom:12px;
+  position:absolute; left:12px; right:12px; bottom:104px;
   background:rgba(255,255,255,.96); border:1px solid var(--line);
   border-left:3px solid var(--accent); border-radius:8px;
   padding:10px 13px; display:none; flex-direction:column; gap:3px;
@@ -236,12 +236,50 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
 .coach p{ margin:0; font-size:13px; color:var(--ink); }
 .coach .metric{ font-family:var(--mono); color:var(--accent); font-weight:600; }
 
-.touch{ position:absolute; inset:auto 0 0 0; display:none;
-  justify-content:space-between; padding:14px; gap:10px; pointer-events:none; }
-.touch button{ pointer-events:auto; width:76px; height:58px; font-size:19px;
-  background:rgba(255,255,255,.92); }
-.touch .mid{ display:flex; gap:8px; pointer-events:auto; }
-.touch .mid button{ width:56px; height:58px; font-size:11px; }
+/* Weight-shift bar. The slider position IS the commanded bank, so it
+   holds where you leave it — exactly what circling needs — and the
+   arrow keys drive the same value. */
+.steer{
+  position:absolute; left:12px; right:12px; bottom:12px;
+  background:rgba(255,255,255,.95); border:1px solid var(--line);
+  border-radius:10px; padding:8px 14px 10px;
+  box-shadow:0 4px 14px rgba(19,32,41,.13);
+  display:flex; flex-direction:column; gap:3px;
+}
+.steer-top{ display:flex; align-items:center; gap:10px; }
+.steer-top .grow{ flex:1 1 auto; }
+.steer-bank{
+  font-family:var(--mono); font-size:13px; font-weight:650;
+  font-variant-numeric:tabular-nums; color:var(--ink);
+}
+.steer-row{ display:flex; align-items:center; gap:10px; }
+.steer-row .mini{
+  flex:0 0 auto; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  font-weight:700; padding:7px 9px;
+}
+#rngSteer{
+  flex:1 1 auto; height:38px; margin:0; background:transparent; cursor:pointer;
+  -webkit-appearance:none; appearance:none; touch-action:none;
+}
+#rngSteer::-webkit-slider-runnable-track{
+  height:6px; border-radius:3px;
+  background:linear-gradient(90deg,#CFE0EA 0%,#CFE0EA 48%,#9FB6C4 48%,#9FB6C4 52%,#CFE0EA 52%,#CFE0EA 100%);
+}
+#rngSteer::-moz-range-track{
+  height:6px; border-radius:3px;
+  background:linear-gradient(90deg,#CFE0EA 0%,#CFE0EA 48%,#9FB6C4 48%,#9FB6C4 52%,#CFE0EA 52%,#CFE0EA 100%);
+}
+#rngSteer::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:32px; height:32px; border-radius:50%;
+  background:var(--card); border:2px solid var(--accent); margin-top:-13px;
+  box-shadow:0 2px 6px rgba(19,32,41,.28);
+}
+#rngSteer::-moz-range-thumb{
+  width:32px; height:32px; border-radius:50%;
+  background:var(--card); border:2px solid var(--accent);
+  box-shadow:0 2px 6px rgba(19,32,41,.28);
+}
+#rngSteer:focus-visible{ outline:2px solid var(--accent-2); outline-offset:3px; border-radius:8px; }
 
 .trace-card{
   flex:0 0 118px; position:relative; background:var(--card);
@@ -321,9 +359,15 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
   .phone{ height:560px; flex:0 0 auto; }
   .air{ height:auto; }
   .map-card{ height:56dvh; min-height:340px; flex:0 0 auto; }
-  .touch{ display:flex; }
 }
 @media (max-width:620px){
+  /* The slider is the primary control, so it gets the whole width and
+     the trims move underneath it. */
+  .steer-row{ flex-wrap:wrap; }
+  #rngSteer{ flex:1 1 100%; order:-1; }
+  .steer-row .mini{ flex:1 1 0; }
+  .coach{ bottom:146px; }
+
   .app{ padding:9px; gap:10px; }
   .head{ flex-wrap:wrap; gap:10px; }
   .phone{ max-width:100%; height:540px; }
@@ -428,14 +472,19 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
         </div>
         <p id="coachText">—</p>
       </div>
-      <div class="touch">
-        <button id="tLeft" aria-label="Bank left">◀</button>
-        <div class="mid">
-          <button id="tSlow" aria-label="Slow down">SLOW</button>
-          <button id="tLevel" aria-label="Wings level">LVL</button>
-          <button id="tFast" aria-label="Speed bar">BAR</button>
+      <div class="steer">
+        <div class="steer-top">
+          <span class="label">Weight shift</span>
+          <span class="grow"></span>
+          <span class="steer-bank" id="steerBank">Wings level</span>
         </div>
-        <button id="tRight" aria-label="Bank right">▶</button>
+        <div class="steer-row">
+          <button class="mini" id="tSlow" aria-label="Slow down">Slow</button>
+          <input type="range" id="rngSteer" min="-1" max="1" step="0.01" value="0"
+                 aria-label="Weight shift: left and right steering">
+          <button class="mini" id="tFast" aria-label="Speed bar">Bar</button>
+          <button class="mini" id="tLevel" aria-label="Wings level">Lvl</button>
+        </div>
       </div>
     </div>
     <div class="trace-card">
@@ -511,6 +560,7 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
       <span class="label">Controls</span>
       <div class="keys">
         <span><kbd>←</kbd><kbd>→</kbd>bank</span>
+        <span><kbd>drag</kbd>weight shift</span>
         <span><kbd>X</kbd>level</span>
         <span><kbd>↑</kbd><kbd>↓</kbd>speed</span>
         <span><kbd>T</kbd>sniffer</span>
@@ -533,7 +583,8 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
     <p>Rising pitch and faster beeps mean you are going up. A low growl means you are sinking out and should leave. Silence is the deadband either side of zero.</p>
     <div class="rule"></div>
     <div class="keylist">
-      <span class="k">← →</span><span class="d">Weight-shift left / right. Hold to steepen — the bank stays where you leave it.</span>
+      <span class="k">Slider</span><span class="d">Weight shift. Slide left or right to bank; it holds where you leave it, so you can settle into a circle.</span>
+      <span class="k">← →</span><span class="d">The same thing from the keyboard — hold to steepen.</span>
       <span class="k">X</span><span class="d">Wings level.</span>
       <span class="k">↑ ↓</span><span class="d">Speed bar on / off.</span>
       <span class="k">T</span><span class="d">Thermal sniffer — show what the instrument infers about the core.</span>
@@ -979,7 +1030,7 @@ const el = {};
 ['selScenario','btnPause','btnReveal','btnRestart','sGps','sWing','sClock','vbar','pClimb',
  'pAlt','pAvg','pSpd','pGlide','aDot','aTitle','aRange','assist','assistOff','btnSniff','btnMute',
  'devCaption','map','trace','chipFrame','chipWind','chipReveal','chipEst','coach','coachNum',
- 'coachAvg','coachText','tLeft','tRight','tSlow','tFast','tLevel','briefText','circleLog','selWing',
+ 'coachAvg','coachText','rngSteer','steerBank','tSlow','tFast','tLevel','briefText','circleLog','selWing',
  'rngWind','valWind','rngTurb','valTurb','rngLag','valLag','rngThr','valThr','rngSink','valSink',
  'rngVol','valVol','stGain','stBest','stInLift','stCircles','stCentre','stTime','btnDebrief',
  'startOverlay','btnBegin','debriefOverlay','dbTitle','dbLead','dbGrid','dbNotes','btnDbAgain','btnDbClose'
@@ -1561,7 +1612,6 @@ function applyInput(dt){
   const maxB = c.maxBank*Math.PI/180, rate = 32*Math.PI/180;
   if (keys.left)  g.bankTarget = clamp(g.bankTarget - rate*dt, -maxB, maxB);
   if (keys.right) g.bankTarget = clamp(g.bankTarget + rate*dt, -maxB, maxB);
-  if (keys.level) g.bankTarget += clamp(-g.bankTarget, -rate*1.6*dt, rate*1.6*dt);
   if (keys.fast)  g.vTarget = clamp(g.vTarget + 2.5*dt, c.vMin, c.vMax);
   if (keys.slow)  g.vTarget = clamp(g.vTarget - 2.5*dt, c.vMin, c.vMax);
 }
@@ -1571,12 +1621,20 @@ function inputLoop(now){
   const dt = Math.min(0.05, (now - inputLast)/1000 || 0);
   inputLast = now;
   applyInput(dt);
+  syncSteer();
 }
 
 const KEYMAP = {
   ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right',
-  ArrowUp:'fast', KeyW:'fast', ArrowDown:'slow', KeyS:'slow', KeyX:'level'
+  ArrowUp:'fast', KeyW:'fast', ArrowDown:'slow', KeyS:'slow'
 };
+
+/* Levelling is a tap, not a hold: command zero bank and let the wing
+   roll out at its own rate. */
+function levelWings(){
+  const g = sim.glider;
+  if (g && sim.running && !sim.paused && !sim.landed) g.bankTarget = 0;
+}
 
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
@@ -1584,6 +1642,7 @@ addEventListener('keydown', e => {
   if (k){ keys[k] = true; e.preventDefault(); return; }
   switch (e.code){
     case 'Space': e.preventDefault(); togglePause(); break;
+    case 'KeyX': levelWings(); break;
     case 'KeyH': toggleReveal(); break;
     case 'KeyT': toggleSniff(); break;
     case 'KeyM': toggleMute(); break;
@@ -1603,8 +1662,38 @@ function hold(btn, key){
   btn.addEventListener('pointerleave', off);
   btn.addEventListener('pointercancel', off);
 }
-hold(el.tLeft,'left'); hold(el.tRight,'right');
-hold(el.tFast,'fast'); hold(el.tSlow,'slow'); hold(el.tLevel,'level');
+hold(el.tFast,'fast'); hold(el.tSlow,'slow');
+el.tLevel.addEventListener('click', levelWings);
+
+/* ── Weight-shift slider ───────────────────────────────────────
+   The slider and the arrow keys are two handles on one value: the
+   commanded bank. Dragging sets it; the keys ramp it; either way the
+   slider shows where the wing has been told to go. */
+let steerDragging = false;
+function maxBankRad(){ return WINGS[cfg.wing].maxBank * Math.PI/180; }
+
+el.rngSteer.addEventListener('input', () => {
+  const g = sim.glider;
+  if (!g) return;
+  g.bankTarget = (+el.rngSteer.value) * maxBankRad();
+});
+el.rngSteer.addEventListener('pointerdown', () => { steerDragging = true; });
+addEventListener('pointerup',     () => { steerDragging = false; });
+addEventListener('pointercancel', () => { steerDragging = false; });
+
+/* Keys move the commanded bank, so the slider has to follow them. */
+function syncSteer(){
+  const g = sim.glider;
+  if (!g) return;
+  if (!steerDragging){
+    const v = clamp(g.bankTarget / maxBankRad(), -1, 1);
+    if (Math.abs((+el.rngSteer.value) - v) > 0.005) el.rngSteer.value = v.toFixed(3);
+  }
+  const deg = Math.round(Math.abs(g.bank) * 180/Math.PI);
+  el.steerBank.textContent = deg < 2 ? 'Wings level'
+    : deg + '° ' + (g.bank > 0 ? 'right' : 'left');
+  el.steerBank.style.color = deg < 2 ? 'var(--muted)' : 'var(--ink)';
+}
 
 function togglePause(){
   if (!sim.running || sim.landed) return;

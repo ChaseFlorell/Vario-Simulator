@@ -119,10 +119,15 @@ The side panel keeps a bar chart of every circle's average climb, and
 
 ## Controls
 
+Steering is a **weight-shift slider** under the map: drag it left or right and it
+holds where you leave it, so you can settle into a circle rather than tapping to
+stay there. Its position is the *commanded* bank — the wing rolls toward it at a
+realistic rate, so there is a beat between asking and getting, same as the wing.
+
 | Key | Action |
 |-----|--------|
-| `←` `→` | Weight-shift. Hold to steepen; the bank stays where you leave it. |
-| `X` | Wings level |
+| `←` `→` | Weight-shift, same value as the slider. Hold to steepen. |
+| `X` | Wings level (a tap, not a hold) |
 | `↑` `↓` | Speed bar on / off |
 | `T` | Thermal sniffer |
 | `H` | Reveal the air (instructor view) |
@@ -131,8 +136,8 @@ The side panel keeps a bar chart of every circle's average climb, and
 | `R` | Restart the exercise |
 | `+` `−` | Zoom the map |
 
-On a tablet or phone the map grows touch controls, so it works on a projector,
-a lap, or a phone passed round the group.
+The slider is on every screen size, so it works the same on a projector, a lap,
+or a phone passed round the group; on a phone it widens to the full bar.
 
 ## Running it
 
