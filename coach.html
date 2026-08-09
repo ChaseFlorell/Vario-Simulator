@@ -223,17 +223,24 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
 .chip.hot{ color:#8A5312; border-color:#E8C79A; background:#FDF2E3; }
 .chip.est{ color:var(--accent); border-color:#A9D3DA; background:var(--accent-wash); }
 
+/* The coaching sits above the map rather than on top of it — on a phone
+   an overlay landed squarely on the turn circle. The space is reserved
+   whether or not there is advice, so nothing jumps when it arrives. */
 .coach{
-  position:absolute; left:12px; right:12px; bottom:104px;
-  background:rgba(255,255,255,.96); border:1px solid var(--line);
-  border-left:3px solid var(--accent); border-radius:8px;
-  padding:10px 13px; display:none; flex-direction:column; gap:3px;
-  box-shadow:0 4px 14px rgba(19,32,41,.12);
+  /* Reserved for the two lines a typical piece of advice takes here, so
+     the map neither shrinks nor slides when one arrives. */
+  flex:0 0 auto; min-height:84px;
+  display:flex; flex-direction:column; justify-content:center; gap:3px;
+  background:var(--card); border:1px solid var(--line);
+  border-left:3px solid var(--accent); border-radius:10px;
+  padding:10px 14px;
+  box-shadow:0 1px 2px rgba(19,32,41,.05);
 }
-.coach.show{ display:flex; }
+.coach.idle{ border-left-color:var(--line-2); }
 .coach .hdr{ display:flex; align-items:center; gap:8px; }
 .coach .hdr .grow{ flex:1 1 auto; }
-.coach p{ margin:0; font-size:13px; color:var(--ink); }
+.coach p{ margin:0; font-size:13px; color:var(--ink); text-wrap:pretty; }
+.coach.idle p{ color:var(--muted); }
 .coach .metric{ font-family:var(--mono); color:var(--accent); font-weight:600; }
 
 /* Weight-shift bar. The slider position IS the commanded bank, so it
@@ -361,12 +368,15 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
   .map-card{ height:56dvh; min-height:340px; flex:0 0 auto; }
 }
 @media (max-width:620px){
+  /* Narrow columns wrap the advice onto more lines, so reserve more. */
+  .coach{ min-height:112px; }
+  .coach p{ font-size:12.5px; }
+
   /* The slider is the primary control, so it gets the whole width and
      the trims move underneath it. */
   .steer-row{ flex-wrap:wrap; }
   #rngSteer{ flex:1 1 100%; order:-1; }
   .steer-row .mini{ flex:1 1 0; }
-  .coach{ bottom:146px; }
 
   .app{ padding:9px; gap:10px; }
   .head{ flex-wrap:wrap; gap:10px; }
@@ -456,6 +466,14 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
 
   <!-- ── The air ──────────────────────────────────────────────── -->
   <section class="air" aria-label="Instructor view">
+    <div class="coach idle" id="coach" aria-live="polite">
+      <div class="hdr">
+        <span class="label" id="coachLabel">Coach</span>
+        <span class="grow"></span>
+        <span class="metric" id="coachAvg"></span>
+      </div>
+      <p id="coachText">Fly a full 360 and the coach will tell you where the core was.</p>
+    </div>
     <div class="map-card">
       <canvas id="map" role="img" aria-label="Top-down view of the airmass"></canvas>
       <div class="map-badge">
@@ -463,14 +481,6 @@ input[type=range]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%;
         <span class="chip" id="chipWind">Wind calm</span>
         <span class="chip hot" id="chipReveal" hidden>Truth shown</span>
         <span class="chip est" id="chipEst" hidden>Sniffer estimate shown</span>
-      </div>
-      <div class="coach" id="coach" aria-live="polite">
-        <div class="hdr">
-          <span class="label">Circle <span id="coachNum">1</span></span>
-          <span class="grow"></span>
-          <span class="metric" id="coachAvg">+0.0 m/s</span>
-        </div>
-        <p id="coachText">—</p>
       </div>
       <div class="steer">
         <div class="steer-top">
@@ -999,11 +1009,13 @@ function clockFace(rad){
 }
 
 function showCoach(c, html){
-  el.coachNum.textContent = c.n;
+  el.coachLabel.textContent = 'Circle ' + c.n;
   el.coachAvg.textContent = (c.avg >= 0 ? '+' : '−') + Math.abs(c.avg).toFixed(1) + ' m/s';
   el.coachAvg.style.color = c.avg > 0.2 ? 'var(--lift)' : (c.avg < -0.2 ? 'var(--sink)' : 'var(--ink-2)');
   el.coachText.innerHTML = html;
-  el.coach.classList.add('show');
+  el.coach.classList.remove('idle');
+  // The advice stays put until the next circle replaces it; the timer now
+  // only controls how long the arrow lingers on the map.
   sim.coachTimer = 11;
 }
 
@@ -1029,7 +1041,7 @@ function initAudio(){ audio.start(); }
 const el = {};
 ['selScenario','btnPause','btnReveal','btnRestart','sGps','sWing','sClock','vbar','pClimb',
  'pAlt','pAvg','pSpd','pGlide','aDot','aTitle','aRange','assist','assistOff','btnSniff','btnMute',
- 'devCaption','map','trace','chipFrame','chipWind','chipReveal','chipEst','coach','coachNum',
+ 'devCaption','map','trace','chipFrame','chipWind','chipReveal','chipEst','coach','coachLabel',
  'coachAvg','coachText','rngSteer','steerBank','tSlow','tFast','tLevel','briefText','circleLog','selWing',
  'rngWind','valWind','rngTurb','valTurb','rngLag','valLag','rngThr','valThr','rngSink','valSink',
  'rngVol','valVol','stGain','stBest','stInLift','stCircles','stCentre','stTime','btnDebrief',
@@ -1402,10 +1414,7 @@ function frame(now){
     estT += dt;
     if (estT > 0.4){ estT = 0; updateEstimate(); }
 
-    if (sim.coachTimer > 0){
-      sim.coachTimer -= dt;
-      if (sim.coachTimer <= 0) el.coach.classList.remove('show');
-    }
+    if (sim.coachTimer > 0) sim.coachTimer -= dt;
     audio.setValue(g.vario);
     updateReadouts();
   }
@@ -1529,7 +1538,10 @@ function resetFlight(keepSettings){
   sim.trail = []; sim.beeps = []; sim.traceHist = []; sim.circles = [];
   sim.turnAccum = 0; sim.circleStart = 0; sim.coachTimer = 0; sim.estimate = null;
   springing = false; steerDragging = false;
-  el.coach.classList.remove('show');
+  el.coach.classList.add('idle');
+  el.coachLabel.textContent = 'Coach';
+  el.coachAvg.textContent = '';
+  el.coachText.textContent = 'Fly a full 360 and the coach will tell you where the core was.';
   buildWorld();
   sim.glider = newGlider();
   sim.stats = { time:0, inLift:0, best30:-99, circles:0, z0:sim.glider.z, peakHere:0 };

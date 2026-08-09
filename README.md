@@ -114,6 +114,11 @@ a clock position, a distance, and how many seconds to straighten:
 > Off the core. The best air was 34 m to the NW, your 11 o'clock. Straighten
 > about 3.1 s as you come round to that heading, then re-establish the turn.
 
+It sits in a banner above the map rather than over it — on a phone an overlay
+landed squarely on the turn circle — and the advice stays put until the next
+circle replaces it, so there is time to read it mid-climb. The space is reserved
+whether or not there is anything to say, so the map never moves.
+
 The side panel keeps a bar chart of every circle's average climb, and
 **Centring %** scores what you took against what was actually on offer.
 
